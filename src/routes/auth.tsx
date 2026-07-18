@@ -4,17 +4,25 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/site-chrome";
-import { Loader2, ShieldCheck, MapPin, User, Mail, Lock, Phone } from "lucide-react";
+import { Loader2, MapPin, User, Mail, Lock, Phone, ShieldAlert, AlertCircle } from "lucide-react";
 
 const search = z.object({ next: z.string().optional() });
 
 export const Route = createFileRoute("/auth")({
   validateSearch: search,
   component: AuthPage,
+  head: () => ({
+    meta: [
+      { title: "Sign In / Register — Vutabiz" },
+      { name: "description", content: "Sign in or create your free Vutabiz account to buy and sell locally in Kenya." },
+    ],
+  }),
 });
 
 type County = { id: number; name: string };
 type Ward = { id: number; county_id: number; name: string };
+
+const ADMIN_EMAIL = "admins@gmail.com";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -33,6 +41,10 @@ function AuthPage() {
   const [town, setTown] = useState("");
   const [building, setBuilding] = useState("");
 
+  // Admin state
+  const [adminNotFound, setAdminNotFound] = useState(false);
+  const isAdminEmail = email.trim().toLowerCase() === ADMIN_EMAIL;
+
   useEffect(() => {
     supabase
       .from("counties")
@@ -47,7 +59,7 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         const userEmail = data.session.user?.email || "";
-        navigate({ to: next ?? (userEmail.trim().toLowerCase() === "admins@gmail.com" ? "/admin" : "/dashboard") });
+        navigate({ to: next ?? (userEmail.trim().toLowerCase() === ADMIN_EMAIL ? "/admin" : "/dashboard") });
       }
     });
   }, [navigate, next]);
@@ -57,40 +69,93 @@ function AuthPage() {
     [wards, countyId],
   );
 
+  // When admin email typed in sign-in mode: reset the "not found" flag
+  useEffect(() => {
+    setAdminNotFound(false);
+  }, [email, mode]);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setAdminNotFound(false);
     try {
       if (mode === "signup") {
-        if (!fullName || !phone || !countyId)
-          throw new Error("Name, phone and county are required");
+        // For admin email: skip location requirement, use sensible defaults
+        const effectiveCounty = isAdminEmail ? 47 : countyId; // 47 = Nairobi
+        if (!fullName || !phone) throw new Error("Name and phone are required");
         if (phone.length < 10) throw new Error("Please enter a valid phone number");
+        if (!isAdminEmail && !effectiveCounty) throw new Error("County is required");
 
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim().toLowerCase(),
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/dashboard`,
             data: {
               full_name: fullName,
               phone,
-              county_id: String(countyId),
+              county_id: String(effectiveCounty || 47),
               ward_id: wardId ? String(wardId) : "",
-              town: town || null,
+              town: town || (isAdminEmail ? "Nairobi CBD" : null),
               building: building || null,
             },
           },
         });
         if (error) throw error;
-        toast.success("Account created — you're signed in.");
+        toast.success("Account created — you're signed in!");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
+        if (error) {
+          // If admin email fails to sign in, the account doesn't exist yet
+          if (isAdminEmail && (error.message.toLowerCase().includes("invalid") || error.message.toLowerCase().includes("credentials"))) {
+            setAdminNotFound(true);
+            setLoading(false);
+            return;
+          }
+          throw error;
+        }
         toast.success("Welcome back!");
       }
-      navigate({ to: next ?? (email.trim().toLowerCase() === "admins@gmail.com" ? "/admin" : "/dashboard") });
+      const targetEmail = email.trim().toLowerCase();
+      navigate({ to: next ?? (targetEmail === ADMIN_EMAIL ? "/admin" : "/dashboard") });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // One-click admin registration
+  async function registerAdmin() {
+    if (!password || password.length < 8) {
+      toast.error("Enter a password of at least 8 characters first");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: ADMIN_EMAIL,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/admin`,
+          data: {
+            full_name: "Vutabiz Admin",
+            phone: "0700000000",
+            county_id: "47",
+            ward_id: "",
+            town: "Nairobi CBD",
+            building: "Admin",
+          },
+        },
+      });
+      if (error) throw error;
+      toast.success("Admin account created! Redirecting…");
+      navigate({ to: "/admin" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setLoading(false);
     }
@@ -121,6 +186,7 @@ function AuthPage() {
             </p>
           </div>
 
+          {/* Mode tabs */}
           <div className="flex rounded-full bg-muted p-1 text-sm font-semibold mb-6">
             <button
               type="button"
@@ -137,6 +203,40 @@ function AuthPage() {
               Sign Up
             </button>
           </div>
+
+          {/* ── ADMIN NOT FOUND BANNER ── */}
+          {adminNotFound && (
+            <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-center gap-2 text-amber-800 font-bold text-sm mb-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                Admin account not set up yet
+              </div>
+              <p className="text-amber-700 text-xs leading-relaxed mb-3">
+                The admin account <strong>admins@gmail.com</strong> hasn't been created in the database yet.
+                Click the button below to create it now using the password you entered.
+              </p>
+              <button
+                type="button"
+                onClick={registerAdmin}
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 text-sm font-bold transition shadow cursor-pointer disabled:opacity-60"
+              >
+                {loading ? (
+                  <><Loader2 className="h-4 w-4 animate-spin" /> Creating…</>
+                ) : (
+                  <><ShieldAlert className="h-4 w-4" /> Create Admin Account &amp; Sign In</>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* ── ADMIN BADGE ── shown on sign-in page when admin email typed */}
+          {isAdminEmail && mode === "signin" && !adminNotFound && (
+            <div className="mb-4 flex items-center gap-2 rounded-xl bg-primary/5 border border-primary/20 px-4 py-2.5 text-sm text-primary-dark">
+              <ShieldAlert className="h-4 w-4 text-primary shrink-0" />
+              <span>Admin credentials detected — will redirect to control panel on login.</span>
+            </div>
+          )}
 
           <form onSubmit={onSubmit} className="space-y-4">
             {mode === "signup" && (
@@ -179,7 +279,7 @@ function AuthPage() {
               required
             />
 
-            {mode === "signup" && (
+            {mode === "signup" && !isAdminEmail && (
               <div className="pt-3 border-t border-border/50">
                 <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
                   <MapPin className="h-3.5 w-3.5 text-primary" /> Location details
@@ -227,15 +327,21 @@ function AuthPage() {
               </div>
             )}
 
+            {/* Admin signup shortcut notice */}
+            {mode === "signup" && isAdminEmail && (
+              <div className="flex items-start gap-2 rounded-xl bg-primary/5 border border-primary/20 px-4 py-3 text-xs text-primary-dark">
+                <ShieldAlert className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                <span>Admin account will be set up with default Nairobi location. You'll be redirected to the admin dashboard.</span>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
               className="mt-6 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary-dark hover:bg-primary text-white px-4 py-3 font-bold transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-60 cursor-pointer"
             >
               {loading ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-                </>
+                <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
               ) : mode === "signin" ? (
                 "Sign In to Vutabiz"
               ) : (

