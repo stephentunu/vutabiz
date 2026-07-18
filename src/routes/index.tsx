@@ -146,145 +146,125 @@ function Home() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
 
-      {/* HERO */}
-      <section className="relative overflow-hidden">
+      {/* COMPACT TOP SEARCH & HERO PANEL */}
+      <section className="relative overflow-hidden bg-primary-dark">
         <div className="relative">
           <img
             src={heroAppliances}
             alt="Kenyan home appliances and solar panels"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover opacity-25"
             width={1600}
             height={900}
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-primary-dark via-primary-dark/85 to-primary-dark/10" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary-dark/50 to-primary-dark" />
           <KenteBar />
-          <div className="absolute right-0 inset-y-0 hidden md:block w-16 kente-pattern opacity-90" />
+          <div className="absolute right-0 inset-y-0 hidden md:block w-16 kente-pattern opacity-40" />
 
-          <div className="relative mx-auto max-w-7xl px-6 md:px-16 pt-20 pb-28 md:pt-32 md:pb-36 text-white">
-            <div className="max-w-xl">
-              <h1 className="text-4xl md:text-6xl font-extrabold leading-[1.05] uppercase">
-                Your Trusted
-                <br />
-                Local Marketplace
+          <div className="relative mx-auto max-w-7xl px-4 md:px-12 py-5 md:py-7 text-white flex flex-col gap-3">
+            <div className="max-w-3xl">
+              <h1 className="text-xl md:text-2xl font-extrabold tracking-tight uppercase leading-tight">
+                Your Trusted Local Marketplace
               </h1>
-              <p className="mt-5 text-base md:text-lg text-white/85 max-w-md font-medium">
-                Buy & sell home appliances, solar panels, electronics, and construction materials
-                locally across Kenya with safe transactions.
+              <p className="mt-1 text-xs md:text-sm text-white/85 max-w-2xl font-medium">
+                Buy & sell home appliances, solar panels, electronics, and construction materials locally across Kenya with safe transactions.
               </p>
-
-              <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to="/sell"
-                  className="inline-flex items-center gap-2 rounded-full bg-white text-primary-dark px-6 py-3 text-sm font-bold shadow-lg hover:shadow-xl transition"
-                >
-                  Start Selling <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link
-                  to="/browse"
-                  className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur ring-1 ring-white/40 px-6 py-3 text-sm font-semibold hover:bg-white/20 transition"
-                >
-                  Browse Listings
-                </Link>
-              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Elevated Search bar */}
-        <div className="mx-auto max-w-6xl px-6">
-          <form
-            onSubmit={handleSearch}
-            className="relative -mt-16 md:-mt-20 z-10 rounded-2xl bg-white shadow-[0_20px_50px_-20px_rgba(30,60,30,0.35)] ring-1 ring-black/5 p-3 md:p-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-center gap-2 md:gap-3">
-              <div className="flex items-center gap-3 px-4 py-2 border-b md:border-b-0">
-                <Search className="h-5 w-5 text-muted-foreground shrink-0" />
-                <input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="What are you looking for?"
-                  className="w-full bg-transparent outline-none text-sm placeholder:text-muted-foreground py-2"
-                />
-              </div>
+            {/* Inline Search Bar */}
+            <form
+              onSubmit={handleSearch}
+              className="w-full rounded-xl bg-white shadow-md ring-1 ring-black/5 p-2"
+            >
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-center gap-1.5 md:gap-2">
+                <div className="flex items-center gap-2.5 px-3 py-1 border-b md:border-b-0">
+                  <Search className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="What are you looking for?"
+                    className="w-full bg-transparent outline-none text-xs md:text-sm text-foreground placeholder:text-muted-foreground py-1"
+                  />
+                </div>
 
-              {/* Category Select */}
-              <div className="flex items-center gap-2 px-4 py-2 border-b md:border-b-0 md:border-l text-sm text-foreground">
-                <span className="text-muted-foreground shrink-0">Category:</span>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="bg-transparent outline-none font-medium cursor-pointer max-w-[120px] md:max-w-none text-ellipsis overflow-hidden"
-                >
-                  <option value="">All Categories</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.slug}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Location Select */}
-              <div className="flex items-center gap-2 px-4 py-2 border-b md:border-b-0 md:border-l text-sm text-foreground">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                <div className="leading-tight flex flex-col">
-                  <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                    Location
-                  </span>
+                {/* Category Select */}
+                <div className="flex items-center gap-1.5 px-3 py-1 border-b md:border-b-0 md:border-l text-xs md:text-sm text-foreground">
+                  <span className="text-muted-foreground shrink-0">Category:</span>
                   <select
-                    value={selectedCounty}
-                    onChange={(e) => setSelectedCounty(e.target.value)}
-                    className="bg-transparent outline-none font-medium cursor-pointer text-sm"
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="bg-transparent outline-none font-semibold cursor-pointer max-w-[100px] md:max-w-none text-ellipsis overflow-hidden text-xs md:text-sm"
                   >
-                    <option value="">All Counties</option>
-                    {counties.map((co) => (
-                      <option key={co.id} value={co.id}>
-                        {co.name}
+                    <option value="">All Categories</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.slug}>
+                        {c.name}
                       </option>
                     ))}
                   </select>
                 </div>
-              </div>
 
-              <button
-                type="submit"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-dark hover:bg-primary text-white px-6 py-3.5 text-sm font-bold transition cursor-pointer"
-              >
-                Search Marketplace <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+                {/* Location Select */}
+                <div className="flex items-center gap-1.5 px-3 py-1 border-b md:border-b-0 md:border-l text-xs md:text-sm text-foreground">
+                  <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <div className="leading-tight flex flex-col">
+                    <span className="text-[9px] uppercase tracking-wide text-muted-foreground">
+                      Location
+                    </span>
+                    <select
+                      value={selectedCounty}
+                      onChange={(e) => setSelectedCounty(e.target.value)}
+                      className="bg-transparent outline-none font-semibold cursor-pointer text-xs md:text-sm"
+                    >
+                      <option value="">All Counties</option>
+                      {counties.map((co) => (
+                        <option key={co.id} value={co.id}>
+                          {co.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white px-4 py-2 text-xs md:text-sm font-bold transition cursor-pointer"
+                >
+                  Search <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 
       {/* CATEGORIES */}
-      <section className="mx-auto max-w-7xl w-full px-6 pt-20 pb-10">
-        <h2 className="text-2xl font-extrabold text-primary-dark uppercase tracking-tight mb-6">
+      <section className="mx-auto max-w-7xl w-full px-4 pt-6 pb-3">
+        <h2 className="text-lg font-extrabold text-primary-dark uppercase tracking-tight mb-3">
           Browse by Category
         </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {CATEGORIES_MAPPING.map((c) => (
             <article
               key={c.name}
-              className="group overflow-hidden rounded-2xl bg-card ring-1 ring-black/5 shadow-sm hover:shadow-lg transition"
+              className="group overflow-hidden rounded-xl bg-card ring-1 ring-black/5 shadow-sm hover:shadow-md transition"
             >
-              <div className="aspect-[4/3] overflow-hidden">
+              <div className="aspect-[16/10] overflow-hidden">
                 <img
                   src={c.img}
                   alt={c.name}
                   width={800}
                   height={600}
                   loading="lazy"
-                  className="h-full w-full object-cover group-hover:scale-105 transition duration-500"
+                  className="h-full w-full object-cover group-hover:scale-103 transition duration-300"
                 />
               </div>
-              <div className="p-4">
-                <h3 className="font-bold text-foreground">{c.name}</h3>
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{c.desc}</p>
+              <div className="p-3">
+                <h3 className="font-bold text-foreground text-sm">{c.name}</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{c.desc}</p>
                 <Link
                   to="/browse"
                   search={{ category: c.slug }}
-                  className="mt-3 inline-flex items-center rounded-full bg-primary text-primary-foreground px-4 py-1.5 text-xs font-semibold hover:bg-primary-dark transition"
+                  className="mt-2 inline-flex items-center rounded-full bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold hover:bg-primary-dark transition"
                 >
                   Browse
                 </Link>
@@ -295,28 +275,28 @@ function Home() {
       </section>
 
       {/* TRENDING */}
-      <section className="mx-auto max-w-7xl w-full px-6 py-10">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-extrabold uppercase tracking-tight text-primary-dark">
+      <section className="mx-auto max-w-7xl w-full px-4 py-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-extrabold uppercase tracking-tight text-primary-dark">
             Top Trending Items
           </h2>
           <Link
             to="/browse"
-            className="rounded-full bg-primary text-white px-4 py-1.5 text-xs font-semibold hover:bg-primary-dark transition"
+            className="rounded-full bg-primary text-white px-3 py-1 text-xs font-semibold hover:bg-primary-dark transition"
           >
             View All
           </Link>
         </div>
 
         {trending.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
             {trending.map((p) => (
               <article
                 key={p.id}
-                className="group rounded-2xl bg-card ring-1 ring-black/5 overflow-hidden hover:shadow-lg transition flex flex-col justify-between"
+                className="group rounded-xl bg-card ring-1 ring-black/5 overflow-hidden hover:shadow-md transition flex flex-col justify-between"
               >
                 <Link to="/listing/$id" params={{ id: p.id }} className="block">
-                  <div className="aspect-square p-3 bg-muted/30">
+                  <div className="aspect-square p-2 bg-muted/20">
                     {p.image_url ? (
                       <img
                         src={p.image_url}
@@ -324,29 +304,29 @@ function Home() {
                         width={600}
                         height={600}
                         loading="lazy"
-                        className="h-full w-full object-cover rounded-lg group-hover:scale-105 transition"
+                        className="h-full w-full object-cover rounded-lg group-hover:scale-103 transition"
                       />
                     ) : (
-                      <div className="w-full h-full bg-muted flex items-center justify-center text-xs text-muted-foreground rounded-lg">
+                      <div className="w-full h-full bg-muted flex items-center justify-center text-[10px] text-muted-foreground rounded-lg">
                         No Image
                       </div>
                     )}
                   </div>
-                  <div className="px-3 pb-2 pt-1">
-                    <h3 className="text-sm font-semibold text-foreground line-clamp-2 min-h-[40px]">
+                  <div className="px-2 pb-1.5 pt-0.5">
+                    <h3 className="text-xs font-bold text-foreground line-clamp-2 min-h-[32px]">
                       {p.title}
                     </h3>
-                    <div className="text-xs text-muted-foreground mt-0.5">{p.town}</div>
-                    <div className="text-primary font-bold mt-1 text-sm">
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{p.town}</div>
+                    <div className="text-primary font-bold mt-0.5 text-xs md:text-sm">
                       KSh {Number(p.price).toLocaleString()}
                     </div>
                   </div>
                 </Link>
-                <div className="px-3 pb-3">
+                <div className="px-2 pb-2">
                   <Link
                     to="/listing/$id"
                     params={{ id: p.id }}
-                    className="mt-2 w-full inline-flex items-center justify-center rounded-lg bg-primary-dark text-white py-2 text-xs font-semibold hover:bg-primary transition"
+                    className="mt-1 w-full inline-flex items-center justify-center rounded-lg bg-primary-dark text-white py-1.5 text-xs font-semibold hover:bg-primary transition"
                   >
                     View Details
                   </Link>
@@ -355,13 +335,13 @@ function Home() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-10 bg-card rounded-2xl ring-1 ring-black/5">
-            <p className="text-muted-foreground text-sm">
+          <div className="text-center py-6 bg-card rounded-xl ring-1 ring-black/5">
+            <p className="text-muted-foreground text-xs">
               No active listings yet. Be the first to post!
             </p>
             <Link
               to="/sell"
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-primary text-white px-5 py-2.5 text-sm font-semibold shadow hover:bg-primary-dark transition"
+              className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-primary text-white px-4 py-2 text-xs font-semibold shadow hover:bg-primary-dark transition"
             >
               Post an Ad
             </Link>
@@ -370,19 +350,19 @@ function Home() {
       </section>
 
       {/* WHY CHOOSE */}
-      <section className="mx-auto max-w-7xl w-full px-6 py-14">
-        <h2 className="text-center text-xl md:text-2xl font-extrabold uppercase text-primary-dark tracking-tight">
+      <section className="mx-auto max-w-7xl w-full px-4 py-8">
+        <h2 className="text-center text-lg font-extrabold uppercase text-primary-dark tracking-tight">
           Why Choose Vutabiz?
         </h2>
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {WHY.map((w) => (
-            <div key={w.title} className="flex items-start gap-4">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
-                <w.icon className="h-6 w-6" />
+            <div key={w.title} className="flex items-start gap-3">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-accent/15 text-accent">
+                <w.icon className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-foreground">{w.title}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{w.body}</p>
+                <h3 className="font-bold text-foreground text-sm">{w.title}</h3>
+                <p className="mt-0.5 text-xs text-muted-foreground">{w.body}</p>
               </div>
             </div>
           ))}

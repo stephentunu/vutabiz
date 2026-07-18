@@ -245,25 +245,25 @@ function Browse() {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-4">
+        <div className="flex items-center justify-between mb-4">
           <div className="leading-tight">
-            <h1 className="text-3xl font-extrabold text-primary-dark tracking-tight">
+            <h1 className="text-xl font-extrabold text-primary-dark tracking-tight">
               Marketplace
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">Find amazing items across Kenya</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Find amazing items across Kenya</p>
           </div>
           <button
             onClick={() => setShowMobileFilters(!showMobileFilters)}
-            className="md:hidden flex items-center gap-2 rounded-xl bg-primary text-white px-4 py-2.5 text-sm font-semibold shadow hover:bg-primary-dark transition cursor-pointer"
+            className="md:hidden flex items-center gap-1.5 rounded-lg bg-primary text-white px-3 py-2 text-xs font-semibold shadow hover:bg-primary-dark transition cursor-pointer"
           >
-            <SlidersHorizontal className="h-4 w-4" /> Filters
+            <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
           </button>
         </div>
 
         {/* Search header bar */}
-        <div className="mb-6 relative max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        <div className="mb-4 relative max-w-xl">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
@@ -271,24 +271,24 @@ function Browse() {
               if (e.key === "Enter") applyFilters({ q: searchVal });
             }}
             placeholder="Search solar panels, fridges, iron sheets, TVs..."
-            className="w-full rounded-2xl border border-border/70 bg-card pl-12 pr-4 py-3.5 outline-none focus:ring-2 focus:ring-primary shadow-sm text-sm"
+            className="w-full rounded-xl border border-border/70 bg-card pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary shadow-sm text-xs md:text-sm"
           />
         </div>
 
         {/* Filter chips */}
         {(q || category || county || minPrice !== undefined || maxPrice !== undefined) && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-1.5 mb-4">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
               Active Filters:
             </span>
             {q && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary-dark px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
                 "{q}"{" "}
                 <X className="h-3 w-3 cursor-pointer" onClick={() => applyFilters({ q: "" })} />
               </span>
             )}
             {activeCategoryName && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary-dark px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
                 Category: {activeCategoryName}{" "}
                 <X
                   className="h-3 w-3 cursor-pointer"
@@ -297,7 +297,7 @@ function Browse() {
               </span>
             )}
             {activeCountyName && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary-dark px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
                 County: {activeCountyName}{" "}
                 <X
                   className="h-3 w-3 cursor-pointer"
@@ -306,7 +306,7 @@ function Browse() {
               </span>
             )}
             {(minPrice !== undefined || maxPrice !== undefined) && (
-              <span className="inline-flex items-center gap-1 text-xs font-semibold bg-primary/10 text-primary-dark px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
                 Price: KSh {minPrice?.toLocaleString() || "0"} -{" "}
                 {maxPrice?.toLocaleString() || "Max"}
                 <X
@@ -317,49 +317,49 @@ function Browse() {
             )}
             <button
               onClick={handleClearFilters}
-              className="text-xs font-bold text-destructive hover:underline ml-2"
+              className="text-[11px] font-bold text-destructive hover:underline ml-1.5"
             >
               Clear All
             </button>
           </div>
         )}
 
-        <div className="grid md:grid-cols-[260px_1fr] gap-8">
+        <div className="grid md:grid-cols-[230px_1fr] gap-6">
           {/* DESKTOP SIDEBAR FILTERS */}
-          <aside className="hidden md:block space-y-6">
+          <aside className="hidden md:block space-y-4">
             {/* Category Filter */}
-            <div className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5 border border-border/40">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
-                <Tag className="h-4 w-4 text-primary" /> Categories
+            <div className="bg-card rounded-xl ring-1 ring-black/5 shadow-sm p-4 border border-border/40">
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-primary" /> Categories
               </h3>
-              <div className="space-y-3.5 max-h-[380px] overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
                 <button
                   onClick={() => applyFilters({ category: "" })}
-                  className={`w-full text-left text-sm font-semibold flex justify-between items-center ${!category ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
+                  className={`w-full text-left text-xs font-bold flex justify-between items-center ${!category ? "text-primary" : "text-muted-foreground hover:text-foreground"}`}
                 >
                   <span>All Categories</span>
-                  {!category && <Check className="h-4 w-4" />}
+                  {!category && <Check className="h-3.5 w-3.5" />}
                 </button>
-                <div className="border-t border-border/50 my-2" />
+                <div className="border-t border-border/50 my-1.5" />
                 {categoryTree.map((parent) => {
                   const isParentActive = category === parent.slug;
                   return (
                     <div key={parent.id} className="space-y-1">
                       <button
                         onClick={() => applyFilters({ category: parent.slug })}
-                        className={`w-full text-left text-sm font-bold flex justify-between items-center ${isParentActive ? "text-primary" : "text-foreground/90 hover:text-primary"}`}
+                        className={`w-full text-left text-xs font-bold flex justify-between items-center ${isParentActive ? "text-primary" : "text-foreground/90 hover:text-primary"}`}
                       >
                         <span>{parent.name}</span>
                       </button>
                       {parent.children.length > 0 && (
-                        <div className="pl-3 border-l border-border/80 ml-1.5 mt-1 space-y-1">
+                        <div className="pl-2.5 border-l border-border/80 ml-1 mt-0.5 space-y-0.5">
                           {parent.children.map((child) => {
                             const isChildActive = category === child.slug;
                             return (
                               <button
                                 key={child.id}
                                 onClick={() => applyFilters({ category: child.slug })}
-                                className={`w-full text-left text-xs font-medium py-1 block transition ${isChildActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
+                                className={`w-full text-left text-[11px] font-semibold py-0.5 block transition ${isChildActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
                               >
                                 {child.name}
                               </button>
@@ -374,16 +374,16 @@ function Browse() {
             </div>
 
             {/* Location (County) Filter */}
-            <div className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5 border border-border/40">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary" /> Location
+            <div className="bg-card rounded-xl ring-1 ring-black/5 shadow-sm p-4 border border-border/40">
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5 text-primary" /> Location
               </h3>
               <select
                 value={selectedCounty}
                 onChange={(e) =>
                   applyFilters({ county: e.target.value ? Number(e.target.value) : undefined })
                 }
-                className="w-full rounded-lg border border-input bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary text-sm cursor-pointer"
+                className="w-full rounded-lg border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs cursor-pointer"
               >
                 <option value="">All Counties</option>
                 {counties.map((co) => (
@@ -395,30 +395,30 @@ function Browse() {
             </div>
 
             {/* Price Filter */}
-            <div className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5 border border-border/40">
-              <h3 className="text-sm font-bold text-foreground mb-4 uppercase tracking-wider flex items-center gap-2">
-                <Coins className="h-4 w-4 text-primary" /> Price Range (KSh)
+            <div className="bg-card rounded-xl ring-1 ring-black/5 shadow-sm p-4 border border-border/40">
+              <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5">
+                <Coins className="h-3.5 w-3.5 text-primary" /> Price Range (KSh)
               </h3>
-              <form onSubmit={handlePriceApply} className="space-y-3">
-                <div className="grid grid-cols-2 gap-2">
+              <form onSubmit={handlePriceApply} className="space-y-2.5">
+                <div className="grid grid-cols-2 gap-1.5">
                   <input
                     type="number"
                     placeholder="Min"
                     value={minPriceVal}
                     onChange={(e) => setMinPriceVal(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border border-input bg-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary"
                   />
                   <input
                     type="number"
                     placeholder="Max"
                     value={maxPriceVal}
                     onChange={(e) => setMaxPriceVal(e.target.value)}
-                    className="w-full rounded-lg border border-input bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary"
+                    className="w-full rounded-lg border border-input bg-white px-2.5 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-primary text-white py-2 text-xs font-bold hover:bg-primary-dark transition cursor-pointer"
+                  className="w-full rounded-lg bg-primary text-white py-1.5 text-xs font-bold hover:bg-primary-dark transition cursor-pointer"
                 >
                   Apply Price
                 </button>
@@ -429,30 +429,30 @@ function Browse() {
           {/* MAIN LISTINGS PANEL */}
           <div>
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
                 {[...Array(6)].map((_, i) => (
                   <div
                     key={i}
-                    className="animate-pulse rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm p-4 space-y-3"
+                    className="animate-pulse rounded-xl overflow-hidden bg-card border border-border/40 shadow-sm p-3 space-y-2.5"
                   >
-                    <div className="aspect-[4/3] bg-muted rounded-lg w-full" />
-                    <div className="h-4 bg-muted rounded w-2/3" />
-                    <div className="h-3 bg-muted rounded w-1/3" />
-                    <div className="h-5 bg-muted rounded w-1/2" />
+                    <div className="aspect-[16/10] bg-muted rounded-lg w-full" />
+                    <div className="h-3.5 bg-muted rounded w-2/3" />
+                    <div className="h-2.5 bg-muted rounded w-1/3" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
                   </div>
                 ))}
               </div>
             ) : items.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-5 animate-in fade-in duration-300">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 animate-in fade-in duration-300">
                 {items.map((it) => (
                   <Link
                     key={it.id}
                     to="/listing/$id"
                     params={{ id: it.id }}
-                    className="group rounded-2xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-lg hover:border-primary/20 transition-all duration-300 flex flex-col justify-between"
+                    className="group rounded-xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300 flex flex-col justify-between"
                   >
                     <div>
-                      <div className="aspect-[4/3] bg-muted/20 overflow-hidden relative">
+                      <div className="aspect-[16/10] bg-muted/20 overflow-hidden relative">
                         {it.image_url ? (
                           <img
                             src={it.image_url}
@@ -460,25 +460,25 @@ function Browse() {
                             className="w-full h-full object-cover group-hover:scale-102 transition-all duration-500"
                           />
                         ) : (
-                          <div className="w-full h-full grid place-items-center text-muted-foreground text-xs">
+                          <div className="w-full h-full grid place-items-center text-muted-foreground text-[10px]">
                             No image
                           </div>
                         )}
-                        <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] flex items-center gap-1">
-                          <MapPin className="h-3 w-3" /> {it.town}
+                        <div className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white px-1.5 py-0.5 rounded text-[9px] flex items-center gap-1">
+                          <MapPin className="h-2.5 w-2.5" /> {it.town}
                         </div>
                       </div>
-                      <div className="p-3.5">
-                        <div className="text-sm font-bold text-foreground line-clamp-2 min-h-[40px] leading-tight group-hover:text-primary transition-colors">
+                      <div className="p-2.5">
+                        <div className="text-xs font-bold text-foreground line-clamp-2 min-h-[32px] leading-tight group-hover:text-primary transition-colors">
                           {it.title}
                         </div>
                       </div>
                     </div>
-                    <div className="px-3.5 pb-3.5 pt-0 flex items-center justify-between border-t border-border/40 mt-1">
-                      <div className="text-primary-dark font-extrabold text-base">
+                    <div className="px-2.5 pb-2.5 pt-0 flex items-center justify-between border-t border-border/40 mt-0.5">
+                      <div className="text-primary-dark font-extrabold text-xs md:text-sm">
                         KSh {Number(it.price).toLocaleString()}
                       </div>
-                      <span className="text-[10px] text-muted-foreground">
+                      <span className="text-[9px] text-muted-foreground">
                         {new Date(it.created_at).toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",
@@ -489,13 +489,13 @@ function Browse() {
                 ))}
               </div>
             ) : (
-              <div className="text-center py-20 bg-card rounded-2xl border border-border/40 shadow-sm">
-                <p className="text-muted-foreground font-medium">
+              <div className="text-center py-10 bg-card rounded-xl border border-border/40 shadow-sm">
+                <p className="text-muted-foreground text-xs font-semibold">
                   No active listings match your filters.
                 </p>
                 <button
                   onClick={handleClearFilters}
-                  className="mt-4 rounded-xl bg-primary text-white px-5 py-2.5 text-sm font-semibold shadow hover:bg-primary-dark transition cursor-pointer"
+                  className="mt-3 rounded-lg bg-primary text-white px-4 py-2 text-xs font-semibold shadow hover:bg-primary-dark transition cursor-pointer"
                 >
                   Clear Filters
                 </button>

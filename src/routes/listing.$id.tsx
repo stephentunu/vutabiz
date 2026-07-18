@@ -121,10 +121,10 @@ function ListingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 bg-background py-8">
-        <div className="mx-auto max-w-5xl px-4 grid md:grid-cols-[1.2fr_1fr] gap-8">
+      <main className="flex-1 bg-background py-4">
+        <div className="mx-auto max-w-5xl px-4 grid md:grid-cols-[1.2fr_1fr] gap-5">
           <div>
-            <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-muted ring-1 ring-black/5">
+            <div className="aspect-[4/3] rounded-xl overflow-hidden bg-muted ring-1 ring-black/5">
               {listing.image_url ? (
                 <img
                   src={listing.image_url}
@@ -132,82 +132,82 @@ function ListingPage() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full grid place-items-center text-muted-foreground">
+                <div className="w-full h-full grid place-items-center text-muted-foreground text-xs">
                   No image
                 </div>
               )}
             </div>
-            <h1 className="mt-5 text-3xl font-extrabold text-primary-dark">{listing.title}</h1>
-            <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4" /> {listing.town} {countyName && `· ${countyName}`}
+            <h1 className="mt-3.5 text-xl font-extrabold text-primary-dark">{listing.title}</h1>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <MapPin className="h-3.5 w-3.5" /> {listing.town} {countyName && `· ${countyName}`}
             </div>
-            <div className="mt-2 text-3xl font-black text-primary">
+            <div className="mt-1 text-2xl font-black text-primary">
               KSh {Number(listing.price).toLocaleString()}
             </div>
             {listing.description && (
-              <p className="mt-4 text-foreground whitespace-pre-wrap">{listing.description}</p>
+              <p className="mt-3.5 text-xs md:text-sm text-foreground whitespace-pre-wrap">{listing.description}</p>
             )}
           </div>
 
-          <aside className="bg-card rounded-2xl shadow ring-1 ring-black/5 p-6 h-fit sticky top-24">
-            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          <aside className="bg-card rounded-xl shadow ring-1 ring-black/5 p-4.5 h-fit sticky top-20">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               Seller
             </div>
-            <div className="mt-1 text-lg font-bold">{seller?.full_name ?? "—"}</div>
+            <div className="mt-0.5 text-base font-bold">{seller?.full_name ?? "—"}</div>
             <Link
               to="/store/$userId"
               params={{ userId: listing.seller_id }}
-              className="text-sm text-primary underline"
+              className="text-xs text-primary underline"
             >
               Visit store
             </Link>
 
-            <div className="mt-4">
+            <div className="mt-3">
               {contactVisible ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <a
                     href={`tel:${seller?.phone}`}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary-dark text-white px-4 py-3 font-bold"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-primary-dark text-white px-3 py-2 text-xs font-bold"
                   >
-                    <Phone className="h-4 w-4" /> Call {seller?.phone}
+                    <Phone className="h-3.5 w-3.5" /> Call {seller?.phone}
                   </a>
                   <a
                     href={`https://wa.me/${(seller?.phone ?? "").replace(/\D/g, "")}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white ring-1 ring-primary text-primary px-4 py-3 font-bold"
+                    className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-white ring-1 ring-primary text-primary px-3 py-2 text-xs font-bold"
                   >
-                    <MessageCircle className="h-4 w-4" /> WhatsApp
+                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
                   </a>
                 </div>
               ) : (
-                <div className="rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground flex items-start gap-2">
-                  <Lock className="h-4 w-4 mt-0.5" />
+                <div className="rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground flex items-start gap-1.5">
+                  <Lock className="h-3.5 w-3.5 mt-0.5" />
                   <span>Contact unlocks after the seller accepts your offer.</span>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 border-t border-border pt-4">
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
+            <div className="mt-4 border-t border-border pt-3">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
                 Make an offer
               </div>
               {myOffer && (
                 <div
-                  className={`mb-3 rounded-lg px-3 py-2 text-sm font-semibold ${myOffer.status === "accepted" ? "bg-primary/10 text-primary-dark" : myOffer.status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-accent/50 text-foreground"}`}
+                  className={`mb-2 rounded px-2.5 py-1.5 text-xs font-semibold ${myOffer.status === "accepted" ? "bg-primary/10 text-primary-dark" : myOffer.status === "rejected" ? "bg-destructive/10 text-destructive" : "bg-accent/50 text-foreground"}`}
                 >
                   Your offer of KSh {Number(myOffer.amount).toLocaleString()} is {myOffer.status}.
                 </div>
               )}
               {!me ? (
-                <div className="bg-muted/50 rounded-xl p-4 text-center border border-border/50">
-                  <p className="text-xs text-muted-foreground mb-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center border border-border/50">
+                  <p className="text-[11px] text-muted-foreground mb-2">
                     You must be signed in to make an offer or view contact details.
                   </p>
                   <Link
                     to="/auth"
                     search={{ next: `/listing/${id}` }}
-                    className="inline-flex w-full items-center justify-center rounded-xl bg-primary text-white py-2 text-xs font-bold hover:bg-primary-dark transition"
+                    className="inline-flex w-full items-center justify-center rounded-lg bg-primary text-white py-1.5 text-xs font-bold hover:bg-primary-dark transition"
                   >
                     Sign In to Offer
                   </Link>
@@ -219,19 +219,19 @@ function ListingPage() {
                       type="number"
                       value={amount}
                       onChange={(e) => setAmount(Number(e.target.value))}
-                      className="w-full rounded-lg border border-input bg-white px-3 py-2.5 mb-2 outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded border border-input bg-white px-2.5 py-1.5 mb-1.5 outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                     <textarea
                       value={msg}
                       onChange={(e) => setMsg(e.target.value)}
                       placeholder="Optional message"
                       rows={2}
-                      className="w-full rounded-lg border border-input bg-white px-3 py-2.5 mb-2 outline-none focus:ring-2 focus:ring-primary"
+                      className="w-full rounded border border-input bg-white px-2.5 py-1.5 mb-1.5 outline-none focus:ring-2 focus:ring-primary text-xs"
                     />
                     <button
                       disabled={loading}
                       onClick={send}
-                      className="w-full rounded-xl bg-primary hover:bg-primary-dark text-white px-4 py-3 font-bold disabled:opacity-60 cursor-pointer"
+                      className="w-full rounded bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold disabled:opacity-60 cursor-pointer"
                     >
                       Send offer
                     </button>

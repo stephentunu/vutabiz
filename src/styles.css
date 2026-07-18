@@ -84,6 +84,14 @@
 
 /* Kenyan geometric side pattern */
 @layer base {
+  html {
+    font-size: 14px;
+  }
+  @media (min-width: 768px) {
+    html {
+      font-size: 14.5px;
+    }
+  }
   * {
     border-color: var(--color-border);
   }

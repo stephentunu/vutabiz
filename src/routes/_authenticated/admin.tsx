@@ -47,14 +47,14 @@ function StatCard({
   sub?: string;
 }) {
   return (
-    <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5 flex flex-col gap-3">
-      <div className={`inline-flex h-11 w-11 rounded-xl items-center justify-center ${tone}`}>
-        <Icon className="h-5 w-5" />
+    <div className="bg-card rounded-xl border border-border/40 shadow-sm p-3.5 flex flex-col gap-2">
+      <div className={`inline-flex h-9 w-9 rounded-lg items-center justify-center ${tone}`}>
+        <Icon className="h-4.5 w-4.5" />
       </div>
       <div>
-        <div className="text-2xl font-extrabold tracking-tight">{value}</div>
-        <div className="text-xs font-semibold text-muted-foreground mt-0.5">{label}</div>
-        {sub && <div className="text-[10px] text-muted-foreground/70 mt-1">{sub}</div>}
+        <div className="text-lg font-extrabold tracking-tight">{value}</div>
+        <div className="text-[10px] font-semibold text-muted-foreground mt-0.5">{label}</div>
+        {sub && <div className="text-[9px] text-muted-foreground/70 mt-0.5">{sub}</div>}
       </div>
     </div>
   );
@@ -156,43 +156,42 @@ function AdminPage() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 py-8">
+      <main className="flex-1 py-4">
         <div className="mx-auto max-w-7xl px-4">
           {/* Page header */}
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <ShieldAlert className="h-5 w-5 text-primary" />
-                <span className="text-xs font-bold text-primary uppercase tracking-widest">Admin Control Panel</span>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <ShieldAlert className="h-4 w-4 text-primary" />
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Admin Control Panel</span>
               </div>
-              <h1 className="text-3xl font-extrabold text-primary-dark tracking-tight">Site Dashboard</h1>
-              <p className="text-sm text-muted-foreground mt-1">Real-time activity across all of Vutabiz Kenya.</p>
+              <h1 className="text-xl font-extrabold text-primary-dark tracking-tight">Site Dashboard</h1>
+              <p className="text-xs text-muted-foreground mt-0.5">Real-time activity across all of Vutabiz Kenya.</p>
             </div>
             <button
               onClick={load}
               disabled={refreshing}
-              className="flex items-center gap-2 rounded-xl bg-primary/10 text-primary-dark border border-primary/20 px-4 py-2.5 text-sm font-semibold hover:bg-primary/20 transition disabled:opacity-60 cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg bg-primary/10 text-primary-dark border border-primary/20 px-3 py-1.5 text-xs font-semibold hover:bg-primary/20 transition disabled:opacity-60 cursor-pointer"
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
               Refresh
             </button>
           </div>
 
           {/* Stat cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {cards.map((c) => (
               <StatCard key={c.label} {...c} />
             ))}
           </div>
 
           {/* Revenue bar viz */}
-          <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5 mb-8">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <h2 className="font-bold text-sm">Revenue at a Glance</h2>
+          <div className="bg-card rounded-xl border border-border/40 shadow-sm p-3.5 mb-4">
+            <div className="flex items-center gap-1.5 mb-3">
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <h2 className="font-bold text-xs">Revenue at a Glance</h2>
             </div>
-            <div className="flex items-end gap-1 h-24">
-              {/* Simple proportional bar chart of revenue vs offers vs users */}
+            <div className="flex items-end gap-1 h-16">
               {[
                 { label: "Users", val: s.users, color: "bg-blue-400" },
                 { label: "Listings", val: s.listings, color: "bg-primary" },
@@ -202,12 +201,12 @@ function AdminPage() {
                 const max = Math.max(s.users, s.listings, s.offers, Math.round(s.revenue / 100), 1);
                 const pct = Math.max(8, Math.round((bar.val / max) * 100));
                 return (
-                  <div key={bar.label} className="flex-1 flex flex-col items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-muted-foreground">{bar.val}</span>
-                    <div className="w-full rounded-t-lg" style={{ height: `${pct}%` }}>
-                      <div className={`w-full h-full rounded-t-lg ${bar.color}`} />
+                  <div key={bar.label} className="flex-1 flex flex-col items-center gap-1">
+                    <span className="text-[9px] font-bold text-muted-foreground">{bar.val}</span>
+                    <div className="w-full rounded-t-md" style={{ height: `${pct}%` }}>
+                      <div className={`w-full h-full rounded-t-md ${bar.color}`} />
                     </div>
-                    <span className="text-[9px] text-muted-foreground text-center">{bar.label}</span>
+                    <span className="text-[8px] text-muted-foreground text-center">{bar.label}</span>
                   </div>
                 );
               })}
@@ -215,16 +214,16 @@ function AdminPage() {
           </div>
 
           {/* Tabs: Listings | Users */}
-          <div className="flex gap-1 bg-muted p-1 rounded-xl mb-5 w-fit">
+          <div className="flex gap-1 bg-muted p-1 rounded-lg mb-3 w-fit">
             <button
               onClick={() => setActiveTab("listings")}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "listings" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${activeTab === "listings" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
             >
               Recent Listings
             </button>
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "users" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
+              className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${activeTab === "users" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
             >
               Recent Users
             </button>
@@ -232,67 +231,67 @@ function AdminPage() {
 
           {/* Listings table */}
           {activeTab === "listings" && (
-            <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border/40">
-                <h2 className="font-bold flex items-center gap-2">
-                  <Package className="h-4 w-4 text-primary" /> Recent Listings (last 10)
+            <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-border/40">
+                <h2 className="font-bold text-sm flex items-center gap-1.5">
+                  <Package className="h-3.5 w-3.5 text-primary" /> Recent Listings (last 10)
                 </h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-muted/40 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      <th className="px-5 py-3">Title</th>
-                      <th className="px-5 py-3">Price</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3">Date</th>
-                      <th className="px-5 py-3">Actions</th>
+                    <tr className="bg-muted/40 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-4 py-2">Title</th>
+                      <th className="px-4 py-2">Price</th>
+                      <th className="px-4 py-2">Status</th>
+                      <th className="px-4 py-2">Date</th>
+                      <th className="px-4 py-2">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {s.recentListings.map((l) => (
                       <tr key={l.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-3.5 font-medium max-w-[200px] truncate">
+                        <td className="px-4 py-2.5 font-medium max-w-[180px] truncate">
                           <Link
                             to="/listing/$id"
                             params={{ id: l.id }}
                             className="hover:text-primary hover:underline flex items-center gap-1"
                           >
                             {l.title}
-                            <ExternalLink className="h-3 w-3 shrink-0" />
+                            <ExternalLink className="h-2.5 w-2.5 shrink-0" />
                           </Link>
                         </td>
-                        <td className="px-5 py-3.5 text-primary-dark font-bold">
+                        <td className="px-4 py-2.5 text-primary-dark font-bold">
                           KSh {Number(l.price).toLocaleString()}
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-2.5">
                           <StatusBadge status={l.status} />
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        <td className="px-4 py-2.5 text-muted-foreground text-[10px]">
                           {new Date(l.created_at).toLocaleDateString("en-KE", {
                             day: "numeric",
                             month: "short",
                             year: "numeric",
                           })}
                         </td>
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-1.5">
+                        <td className="px-4 py-2.5">
+                          <div className="flex items-center gap-1">
                             {l.status !== "sold" && (
                               <button
                                 onClick={() => handleStatusChange(l.id, "sold")}
                                 title="Mark as sold"
-                                className="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                                className="grid h-7 w-7 place-items-center rounded-md bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
                               >
-                                <PackageCheck className="h-3.5 w-3.5" />
+                                <PackageCheck className="h-3 w-3" />
                               </button>
                             )}
                             {l.status !== "deleted" && (
                               <button
                                 onClick={() => handleStatusChange(l.id, "deleted")}
                                 title="Delete listing"
-                                className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                                className="grid h-7 w-7 place-items-center rounded-md bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition cursor-pointer"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-3 w-3" />
                               </button>
                             )}
                           </div>
@@ -301,7 +300,7 @@ function AdminPage() {
                     ))}
                     {s.recentListings.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground text-sm">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-xs">
                           No listings yet.
                         </td>
                       </tr>
@@ -314,40 +313,40 @@ function AdminPage() {
 
           {/* Users table */}
           {activeTab === "users" && (
-            <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-border/40">
-                <h2 className="font-bold flex items-center gap-2">
-                  <Users className="h-4 w-4 text-primary" /> Recent Users (last 10)
+            <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden">
+              <div className="px-4 py-2.5 border-b border-border/40">
+                <h2 className="font-bold text-sm flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-primary" /> Recent Users (last 10)
                 </h2>
               </div>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="bg-muted/40 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                      <th className="px-5 py-3">Name</th>
-                      <th className="px-5 py-3">Email</th>
-                      <th className="px-5 py-3">Phone</th>
-                      <th className="px-5 py-3">Joined</th>
-                      <th className="px-5 py-3">Store</th>
+                    <tr className="bg-muted/40 text-left text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-4 py-2">Name</th>
+                      <th className="px-4 py-2">Email</th>
+                      <th className="px-4 py-2">Phone</th>
+                      <th className="px-4 py-2">Joined</th>
+                      <th className="px-4 py-2">Store</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40">
                     {s.recentUsers.map((u) => (
                       <tr key={u.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-5 py-3.5 font-semibold">{u.full_name}</td>
-                        <td className="px-5 py-3.5 text-muted-foreground">
+                        <td className="px-4 py-2.5 font-semibold">{u.full_name}</td>
+                        <td className="px-4 py-2.5 text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <Mail className="h-3 w-3 shrink-0" /> {u.email}
+                            <Mail className="h-2.5 w-2.5 shrink-0" /> {u.email}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground">
+                        <td className="px-4 py-2.5 text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3 shrink-0" /> {u.phone || "—"}
+                            <Phone className="h-2.5 w-2.5 shrink-0" /> {u.phone || "—"}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        <td className="px-4 py-2.5 text-muted-foreground text-[10px]">
                           <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 shrink-0" />
+                            <Calendar className="h-2.5 w-2.5 shrink-0" />
                             {new Date(u.created_at).toLocaleDateString("en-KE", {
                               day: "numeric",
                               month: "short",
@@ -355,20 +354,20 @@ function AdminPage() {
                             })}
                           </span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td className="px-4 py-2.5">
                           <Link
                             to="/store/$userId"
                             params={{ userId: u.id }}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                            className="inline-flex items-center gap-1 text-[10px] font-semibold text-primary hover:underline"
                           >
-                            View Store <ExternalLink className="h-3 w-3" />
+                            View Store <ExternalLink className="h-2.5 w-2.5" />
                           </Link>
                         </td>
                       </tr>
                     ))}
                     {s.recentUsers.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground text-sm">
+                        <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground text-xs">
                           No users yet.
                         </td>
                       </tr>
