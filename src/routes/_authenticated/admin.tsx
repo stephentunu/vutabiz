@@ -13,20 +13,46 @@ function AdminPage() {
   const fetchStats = useServerFn(adminStats);
   const [s, setS] = useState<Stats | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  useEffect(() => { fetchStats().then(setS).catch((e) => setErr(e instanceof Error ? e.message : "Access denied")); }, [fetchStats]);
+  useEffect(() => {
+    fetchStats()
+      .then(setS)
+      .catch((e) => setErr(e instanceof Error ? e.message : "Access denied"));
+  }, [fetchStats]);
 
-  if (err) return (
-    <div className="min-h-screen flex flex-col"><Header />
-      <main className="flex-1 grid place-items-center"><div className="text-destructive font-bold">{err}</div></main>
-    <Footer /></div>
-  );
-  if (!s) return (<div className="min-h-screen flex flex-col"><Header /><main className="flex-1 grid place-items-center">Loading…</main><Footer /></div>);
+  if (err)
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 grid place-items-center">
+          <div className="text-destructive font-bold">{err}</div>
+        </main>
+        <Footer />
+      </div>
+    );
+  if (!s)
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 grid place-items-center">Loading…</main>
+        <Footer />
+      </div>
+    );
 
   const cards = [
     { icon: Users, label: "Users", value: s.users, tone: "bg-blue-50 text-blue-700" },
-    { icon: Package, label: "Listings", value: s.listings, tone: "bg-primary/10 text-primary-dark" },
+    {
+      icon: Package,
+      label: "Listings",
+      value: s.listings,
+      tone: "bg-primary/10 text-primary-dark",
+    },
     { icon: HandCoins, label: "Offers", value: s.offers, tone: "bg-amber-50 text-amber-700" },
-    { icon: TrendingUp, label: "Revenue (KSh)", value: s.revenue.toLocaleString(), tone: "bg-emerald-50 text-emerald-700" },
+    {
+      icon: TrendingUp,
+      label: "Revenue (KSh)",
+      value: s.revenue.toLocaleString(),
+      tone: "bg-emerald-50 text-emerald-700",
+    },
   ];
 
   return (
@@ -40,7 +66,11 @@ function AdminPage() {
           <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
             {cards.map((c) => (
               <div key={c.label} className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-                <div className={`inline-flex h-10 w-10 rounded-lg items-center justify-center ${c.tone}`}><c.icon className="h-5 w-5" /></div>
+                <div
+                  className={`inline-flex h-10 w-10 rounded-lg items-center justify-center ${c.tone}`}
+                >
+                  <c.icon className="h-5 w-5" />
+                </div>
                 <div className="mt-3 text-2xl font-extrabold">{c.value}</div>
                 <div className="text-xs text-muted-foreground">{c.label}</div>
               </div>
@@ -54,7 +84,9 @@ function AdminPage() {
                 {s.recentListings.map((l) => (
                   <li key={l.id} className="py-2 flex items-center gap-3 text-sm">
                     <div className="flex-1 truncate">{l.title}</div>
-                    <div className="text-muted-foreground">KSh {Number(l.price).toLocaleString()}</div>
+                    <div className="text-muted-foreground">
+                      KSh {Number(l.price).toLocaleString()}
+                    </div>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-muted">{l.status}</span>
                   </li>
                 ))}

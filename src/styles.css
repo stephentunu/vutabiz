@@ -74,14 +74,22 @@
 
 /* Kenyan geometric side pattern (base64-free, pure SVG data URI) */
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1,h2,h3,h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
 }
 
 @utility kente-pattern {
@@ -92,6 +100,12 @@
 
 @utility hero-gradient {
   background:
-    linear-gradient(115deg, oklch(0.42 0.13 148) 0%, oklch(0.42 0.13 148) 42%, oklch(0.42 0.13 148 / 0.55) 55%, transparent 70%),
+    linear-gradient(
+      115deg,
+      oklch(0.42 0.13 148) 0%,
+      oklch(0.42 0.13 148) 42%,
+      oklch(0.42 0.13 148 / 0.55) 55%,
+      transparent 70%
+    ),
     var(--hero-img) center/cover no-repeat;
 }

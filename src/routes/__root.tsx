@@ -78,9 +78,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Vutabiz — Your Trusted Local Kenyan Marketplace" },
-      { name: "description", content: "Buy & sell home appliances, furniture, construction materials and farm produce locally across Kenya. Verified sellers, safe transactions." },
+      {
+        name: "description",
+        content:
+          "Buy & sell home appliances, furniture, construction materials and farm produce locally across Kenya. Verified sellers, safe transactions.",
+      },
       { property: "og:title", content: "Vutabiz — Your Trusted Local Kenyan Marketplace" },
-      { property: "og:description", content: "Buy & sell locally across Kenya — appliances, furniture, construction, farm produce." },
+      {
+        property: "og:description",
+        content:
+          "Buy & sell locally across Kenya — appliances, furniture, construction, farm produce.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -88,7 +96,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+      },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
     ],
   }),
