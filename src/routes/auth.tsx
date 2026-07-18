@@ -280,11 +280,11 @@ function AuthPage() {
             />
 
             {mode === "signup" && !isAdminEmail && (
-              <div className="pt-2.5 border-t border-border/50">
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5 text-primary" /> Location details
+              <div className="pt-4 border-t border-border/50 space-y-4">
+                <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                  <MapPin className="h-4 w-4 text-primary" /> Location details
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-4">
                   <Select
                     label="County *"
                     value={countyId}
@@ -307,22 +307,18 @@ function AuthPage() {
                     ]}
                     disabled={!countyId}
                   />
-                  <div className="col-span-1">
-                    <Input
-                      label="Town / Estate"
-                      value={town}
-                      onChange={setTown}
-                      placeholder="e.g. Kilimani"
-                    />
-                  </div>
-                  <div className="col-span-1">
-                    <Input
-                      label="Building / Landmark"
-                      value={building}
-                      onChange={setBuilding}
-                      placeholder="e.g. Greenhouse"
-                    />
-                  </div>
+                  <Input
+                    label="Town / Estate"
+                    value={town}
+                    onChange={setTown}
+                    placeholder="e.g. Kilimani"
+                  />
+                  <Input
+                    label="Building / Landmark"
+                    value={building}
+                    onChange={setBuilding}
+                    placeholder="e.g. Greenhouse"
+                  />
                 </div>
               </div>
             )}
@@ -375,10 +371,10 @@ function Input({
 }) {
   return (
     <div className="block">
-      <div className="text-sm font-semibold text-foreground mb-1.5">{label}</div>
+      <div className="text-sm font-semibold text-foreground mb-2">{label}</div>
       <div className="relative">
         {Icon && (
-          <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Icon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground/80" />
         )}
         <input
           type={type}
@@ -386,7 +382,7 @@ function Input({
           required={required}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className={`w-full rounded-lg border border-input bg-white py-3 outline-none focus:ring-2 focus:ring-primary text-sm transition-all placeholder:text-muted-foreground/60 ${Icon ? "pl-10 pr-4" : "px-4"}`}
+          className={`w-full h-12 rounded-xl border border-input bg-white outline-none focus:ring-2 focus:ring-primary text-base transition-all placeholder:text-muted-foreground/50 shadow-sm ${Icon ? "pl-12 pr-4" : "px-4"}`}
         />
       </div>
     </div>
@@ -408,12 +404,12 @@ function Select({
 }) {
   return (
     <div className="block">
-      <div className="text-sm font-semibold text-foreground mb-1.5">{label}</div>
+      <div className="text-sm font-semibold text-foreground mb-2">{label}</div>
       <select
         value={value}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value === "" ? "" : Number(e.target.value))}
-        className="w-full rounded-lg border border-input bg-white px-4 py-3 outline-none focus:ring-2 focus:ring-primary text-sm disabled:bg-muted/70 disabled:cursor-not-allowed transition-all"
+        className="w-full h-12 rounded-xl border border-input bg-white px-4 outline-none focus:ring-2 focus:ring-primary text-base disabled:bg-muted/70 disabled:cursor-not-allowed transition-all shadow-sm"
       >
         {options.map((o) => (
           <option key={String(o.value)} value={o.value}>
