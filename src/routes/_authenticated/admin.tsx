@@ -1,109 +1,383 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { adminStats } from "@/lib/marketplace.functions";
+import { adminStats, updateListingStatus } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
-import { Users, Package, HandCoins, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Users,
+  Package,
+  HandCoins,
+  TrendingUp,
+  CheckCircle2,
+  Trash2,
+  PackageCheck,
+  Phone,
+  Mail,
+  Calendar,
+  ExternalLink,
+  RefreshCw,
+  ShieldAlert,
+  BarChart3,
+} from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/admin")({ component: AdminPage });
+export const Route = createFileRoute("/_authenticated/admin")({
+  component: AdminPage,
+  head: () => ({
+    meta: [
+      { title: "Admin Dashboard — Vutabiz" },
+      { name: "description", content: "Vutabiz site-wide admin control panel." },
+    ],
+  }),
+});
 
 type Stats = Awaited<ReturnType<typeof adminStats>>;
 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
+  tone,
+  sub,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string | number;
+  tone: string;
+  sub?: string;
+}) {
+  return (
+    <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5 flex flex-col gap-3">
+      <div className={`inline-flex h-11 w-11 rounded-xl items-center justify-center ${tone}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div>
+        <div className="text-2xl font-extrabold tracking-tight">{value}</div>
+        <div className="text-xs font-semibold text-muted-foreground mt-0.5">{label}</div>
+        {sub && <div className="text-[10px] text-muted-foreground/70 mt-1">{sub}</div>}
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: Record<string, string> = {
+    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    sold: "bg-amber-50 text-amber-700 border-amber-200",
+    deleted: "bg-red-50 text-red-600 border-red-200",
+  };
+  return (
+    <span
+      className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${styles[status] ?? "bg-muted text-muted-foreground"}`}
+    >
+      {status === "active" && <CheckCircle2 className="h-3 w-3" />}
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+}
+
 function AdminPage() {
   const fetchStats = useServerFn(adminStats);
+  const markStatus = useServerFn(updateListingStatus);
   const [s, setS] = useState<Stats | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"listings" | "users">("listings");
+
+  const load = async () => {
+    setRefreshing(true);
+    try {
+      const data = await fetchStats();
+      setS(data);
+      setErr(null);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Access denied");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   useEffect(() => {
-    fetchStats()
-      .then(setS)
-      .catch((e) => setErr(e instanceof Error ? e.message : "Access denied"));
-  }, [fetchStats]);
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleStatusChange = async (listingId: string, status: "sold" | "deleted") => {
+    try {
+      await markStatus({ data: { listing_id: listingId, status } });
+      toast.success(`Listing marked as ${status}`);
+      await load();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update");
+    }
+  };
 
   if (err)
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 grid place-items-center">
-          <div className="text-destructive font-bold">{err}</div>
+        <main className="flex-1 grid place-items-center px-4 py-20">
+          <div className="max-w-md text-center">
+            <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-destructive/10 mb-4">
+              <ShieldAlert className="h-8 w-8 text-destructive" />
+            </div>
+            <h2 className="text-xl font-bold text-destructive mb-2">Access Denied</h2>
+            <p className="text-muted-foreground text-sm">{err}</p>
+            <Link to="/" className="mt-6 inline-flex rounded-xl bg-primary text-white px-5 py-2.5 text-sm font-bold">
+              Return Home
+            </Link>
+          </div>
         </main>
         <Footer />
       </div>
     );
+
   if (!s)
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 grid place-items-center">Loading…</main>
+        <main className="flex-1 grid place-items-center">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+            <p className="text-sm text-muted-foreground font-medium">Loading admin data…</p>
+          </div>
+        </main>
         <Footer />
       </div>
     );
 
   const cards = [
-    { icon: Users, label: "Users", value: s.users, tone: "bg-blue-50 text-blue-700" },
-    {
-      icon: Package,
-      label: "Listings",
-      value: s.listings,
-      tone: "bg-primary/10 text-primary-dark",
-    },
-    { icon: HandCoins, label: "Offers", value: s.offers, tone: "bg-amber-50 text-amber-700" },
-    {
-      icon: TrendingUp,
-      label: "Revenue (KSh)",
-      value: s.revenue.toLocaleString(),
-      tone: "bg-emerald-50 text-emerald-700",
-    },
+    { icon: Users, label: "Total Users", value: s.users, tone: "bg-blue-50 text-blue-700", sub: "Registered accounts" },
+    { icon: Package, label: "Total Listings", value: s.listings, tone: "bg-primary/10 text-primary-dark", sub: "All time" },
+    { icon: HandCoins, label: "Total Offers", value: s.offers, tone: "bg-amber-50 text-amber-700", sub: "Buyer proposals" },
+    { icon: TrendingUp, label: "Revenue (KSh)", value: Number(s.revenue).toLocaleString(), tone: "bg-emerald-50 text-emerald-700", sub: "Ad fees collected" },
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 bg-background py-8">
-        <div className="mx-auto max-w-6xl px-4">
-          <h1 className="text-3xl font-extrabold text-primary-dark">Admin dashboard</h1>
-          <p className="text-muted-foreground">Site-wide activity across Vutabiz.</p>
-
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
-            {cards.map((c) => (
-              <div key={c.label} className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-                <div
-                  className={`inline-flex h-10 w-10 rounded-lg items-center justify-center ${c.tone}`}
-                >
-                  <c.icon className="h-5 w-5" />
-                </div>
-                <div className="mt-3 text-2xl font-extrabold">{c.value}</div>
-                <div className="text-xs text-muted-foreground">{c.label}</div>
+      <main className="flex-1 py-8">
+        <div className="mx-auto max-w-7xl px-4">
+          {/* Page header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <ShieldAlert className="h-5 w-5 text-primary" />
+                <span className="text-xs font-bold text-primary uppercase tracking-widest">Admin Control Panel</span>
               </div>
+              <h1 className="text-3xl font-extrabold text-primary-dark tracking-tight">Site Dashboard</h1>
+              <p className="text-sm text-muted-foreground mt-1">Real-time activity across all of Vutabiz Kenya.</p>
+            </div>
+            <button
+              onClick={load}
+              disabled={refreshing}
+              className="flex items-center gap-2 rounded-xl bg-primary/10 text-primary-dark border border-primary/20 px-4 py-2.5 text-sm font-semibold hover:bg-primary/20 transition disabled:opacity-60 cursor-pointer"
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </button>
+          </div>
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            {cards.map((c) => (
+              <StatCard key={c.label} {...c} />
             ))}
           </div>
 
-          <section className="mt-8 grid md:grid-cols-2 gap-6">
-            <div className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-              <h2 className="font-bold mb-3">Recent listings</h2>
-              <ul className="divide-y divide-border">
-                {s.recentListings.map((l) => (
-                  <li key={l.id} className="py-2 flex items-center gap-3 text-sm">
-                    <div className="flex-1 truncate">{l.title}</div>
-                    <div className="text-muted-foreground">
-                      KSh {Number(l.price).toLocaleString()}
+          {/* Revenue bar viz */}
+          <div className="bg-card rounded-2xl border border-border/40 shadow-sm p-5 mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <h2 className="font-bold text-sm">Revenue at a Glance</h2>
+            </div>
+            <div className="flex items-end gap-1 h-24">
+              {/* Simple proportional bar chart of revenue vs offers vs users */}
+              {[
+                { label: "Users", val: s.users, color: "bg-blue-400" },
+                { label: "Listings", val: s.listings, color: "bg-primary" },
+                { label: "Offers", val: s.offers, color: "bg-amber-400" },
+                { label: "Revenue ÷100", val: Math.round(s.revenue / 100), color: "bg-emerald-400" },
+              ].map((bar) => {
+                const max = Math.max(s.users, s.listings, s.offers, Math.round(s.revenue / 100), 1);
+                const pct = Math.max(8, Math.round((bar.val / max) * 100));
+                return (
+                  <div key={bar.label} className="flex-1 flex flex-col items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-muted-foreground">{bar.val}</span>
+                    <div className="w-full rounded-t-lg" style={{ height: `${pct}%` }}>
+                      <div className={`w-full h-full rounded-t-lg ${bar.color}`} />
                     </div>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-muted">{l.status}</span>
-                  </li>
-                ))}
-              </ul>
+                    <span className="text-[9px] text-muted-foreground text-center">{bar.label}</span>
+                  </div>
+                );
+              })}
             </div>
-            <div className="bg-card rounded-2xl ring-1 ring-black/5 shadow-sm p-5">
-              <h2 className="font-bold mb-3">Recent users</h2>
-              <ul className="divide-y divide-border">
-                {s.recentUsers.map((u) => (
-                  <li key={u.id} className="py-2 flex items-center gap-3 text-sm">
-                    <div className="flex-1 truncate">{u.full_name}</div>
-                    <div className="text-muted-foreground text-xs">{u.email}</div>
-                  </li>
-                ))}
-              </ul>
+          </div>
+
+          {/* Tabs: Listings | Users */}
+          <div className="flex gap-1 bg-muted p-1 rounded-xl mb-5 w-fit">
+            <button
+              onClick={() => setActiveTab("listings")}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "listings" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Recent Listings
+            </button>
+            <button
+              onClick={() => setActiveTab("users")}
+              className={`px-5 py-2 rounded-lg text-sm font-semibold transition ${activeTab === "users" ? "bg-white shadow text-primary-dark" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Recent Users
+            </button>
+          </div>
+
+          {/* Listings table */}
+          {activeTab === "listings" && (
+            <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-border/40">
+                <h2 className="font-bold flex items-center gap-2">
+                  <Package className="h-4 w-4 text-primary" /> Recent Listings (last 10)
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-5 py-3">Title</th>
+                      <th className="px-5 py-3">Price</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-5 py-3">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {s.recentListings.map((l) => (
+                      <tr key={l.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-3.5 font-medium max-w-[200px] truncate">
+                          <Link
+                            to="/listing/$id"
+                            params={{ id: l.id }}
+                            className="hover:text-primary hover:underline flex items-center gap-1"
+                          >
+                            {l.title}
+                            <ExternalLink className="h-3 w-3 shrink-0" />
+                          </Link>
+                        </td>
+                        <td className="px-5 py-3.5 text-primary-dark font-bold">
+                          KSh {Number(l.price).toLocaleString()}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <StatusBadge status={l.status} />
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                          {new Date(l.created_at).toLocaleDateString("en-KE", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-1.5">
+                            {l.status !== "sold" && (
+                              <button
+                                onClick={() => handleStatusChange(l.id, "sold")}
+                                title="Mark as sold"
+                                className="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 border border-amber-200 transition cursor-pointer"
+                              >
+                                <PackageCheck className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {l.status !== "deleted" && (
+                              <button
+                                onClick={() => handleStatusChange(l.id, "deleted")}
+                                title="Delete listing"
+                                className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                    {s.recentListings.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground text-sm">
+                          No listings yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </section>
+          )}
+
+          {/* Users table */}
+          {activeTab === "users" && (
+            <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden">
+              <div className="p-5 border-b border-border/40">
+                <h2 className="font-bold flex items-center gap-2">
+                  <Users className="h-4 w-4 text-primary" /> Recent Users (last 10)
+                </h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-muted/40 text-left text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                      <th className="px-5 py-3">Name</th>
+                      <th className="px-5 py-3">Email</th>
+                      <th className="px-5 py-3">Phone</th>
+                      <th className="px-5 py-3">Joined</th>
+                      <th className="px-5 py-3">Store</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/40">
+                    {s.recentUsers.map((u) => (
+                      <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                        <td className="px-5 py-3.5 font-semibold">{u.full_name}</td>
+                        <td className="px-5 py-3.5 text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3 shrink-0" /> {u.email}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 shrink-0" /> {u.phone || "—"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 shrink-0" />
+                            {new Date(u.created_at).toLocaleDateString("en-KE", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3.5">
+                          <Link
+                            to="/store/$userId"
+                            params={{ userId: u.id }}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                          >
+                            View Store <ExternalLink className="h-3 w-3" />
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                    {s.recentUsers.length === 0 && (
+                      <tr>
+                        <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground text-sm">
+                          No users yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <Footer />
