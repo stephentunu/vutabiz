@@ -176,18 +176,18 @@ export const getMyRole = createServerFn({ method: "GET" })
 export const adminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    // Get the user's email from auth
-    const { data: userData } = await supabaseAdmin.auth.admin.getUserById(context.userId);
-    const userEmail = userData?.user?.email ?? "";
+    // Get the user's email from the JWT claims (no service-role key needed)
+    // Supabase JWT claims include the `email` field.
+    const userEmail: string =
+      (context.claims as Record<string, unknown>)?.["email"] as string ?? "";
     const isAdminEmail = userEmail === "admins@gmail.com";
 
+    // Primary check: has_role RPC (SECURITY DEFINER, uses the user's session)
     const { data: isAdminData } = await context.supabase.rpc(
       "has_role" as never,
       { _user_id: context.userId, _role: "admin" } as never,
     );
-    // Fallback: query user_roles under RLS (users can see own roles)
+    // Fallback: direct user_roles query (users can see their own roles via RLS)
     let isAdmin = Boolean(isAdminData);
     if (!isAdmin) {
       const { data: rows } = await context.supabase
@@ -197,53 +197,75 @@ export const adminStats = createServerFn({ method: "GET" })
         .eq("role", "admin");
       isAdmin = (rows?.length ?? 0) > 0;
     }
-    // Final fallback: if the email matches the hardcoded admin address, grant access
-    // and backfill the missing profile/role records so future checks succeed.
+    // Final fallback: admin email match (handles seeded admin whose trigger was bypassed).
+    // We grant access and backfill missing records using context.supabase.
+    // The profiles INSERT policy allows auth.uid() = id, so this works.
     if (!isAdmin && isAdminEmail) {
       isAdmin = true;
-      // Backfill profile if missing
-      await supabaseAdmin.from("profiles").upsert({
-        id: context.userId,
-        full_name: "System Administrator",
-        email: "admins@gmail.com",
-        phone: "0700000000",
-        county_id: 47,
-        town: "Nairobi CBD",
-        building: "Admin",
-      }, { onConflict: "id", ignoreDuplicates: true });
-      // Backfill roles
-      await supabaseAdmin.from("user_roles").upsert([
-        { user_id: context.userId, role: "user" },
-        { user_id: context.userId, role: "admin" },
-      ], { onConflict: "user_id,role", ignoreDuplicates: true });
+      // Backfill profile (INSERT policy: auth.uid() = id)
+      await context.supabase.from("profiles").upsert(
+        {
+          id: context.userId,
+          full_name: "System Administrator",
+          email: "admins@gmail.com",
+          phone: "0700000000",
+          county_id: 47,
+          town: "Nairobi CBD",
+          building: "Admin",
+        },
+        { onConflict: "id", ignoreDuplicates: true },
+      );
     }
-    if (!isAdmin) throw new Error("Forbidden");
+    if (!isAdmin) throw new Error("Forbidden: Admin access required");
 
-    const [{ count: users }, { count: listings }, { count: offers }, { data: payments }] =
+    // ── Fetch dashboard data using the authenticated admin session ──────────
+    // RLS policies allow admins to see all listings, offers, payments, profiles.
+    const [
+      { count: users },
+      { count: listings },
+      { count: offers },
+      { data: payments },
+      { data: recent },
+      { data: recentUsers },
+    ] = await Promise.all([
+      context.supabase.from("profiles").select("*", { count: "exact", head: true }),
+      context.supabase.from("listings").select("*", { count: "exact", head: true }),
+      context.supabase.from("offers").select("*", { count: "exact", head: true }),
+      context.supabase.from("payments").select("amount"),
+      context.supabase
+        .from("listings")
+        .select("id,title,price,status,created_at,seller_id")
+        .order("created_at", { ascending: false })
+        .limit(10),
+      context.supabase
+        .from("profiles")
+        .select("id,full_name,email,phone,created_at")
+        .order("created_at", { ascending: false })
+        .limit(10),
+    ]);
 
-      await Promise.all([
-        supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
-        supabaseAdmin.from("listings").select("*", { count: "exact", head: true }),
-        supabaseAdmin.from("offers").select("*", { count: "exact", head: true }),
-        supabaseAdmin.from("payments").select("amount"),
-      ]);
-    const revenue = (payments ?? []).reduce((s, p) => s + (p.amount ?? 0), 0);
-    const { data: recent } = await supabaseAdmin
-      .from("listings")
-      .select("id,title,price,status,created_at,seller_id")
-      .order("created_at", { ascending: false })
-      .limit(10);
-    const { data: recentUsers } = await supabaseAdmin
-      .from("profiles")
-      .select("id,full_name,email,phone,created_at")
-      .order("created_at", { ascending: false })
-      .limit(10);
+    const revenue = (payments ?? []).reduce((s, p) => s + ((p as { amount: number }).amount ?? 0), 0);
+
     return {
       users: users ?? 0,
       listings: listings ?? 0,
       offers: offers ?? 0,
       revenue,
-      recentListings: recent ?? [],
-      recentUsers: recentUsers ?? [],
+      recentListings: (recent ?? []) as Array<{
+        id: string;
+        title: string;
+        price: number;
+        status: string;
+        created_at: string;
+        seller_id: string;
+      }>,
+      recentUsers: (recentUsers ?? []) as Array<{
+        id: string;
+        full_name: string;
+        email: string;
+        phone: string;
+        created_at: string;
+      }>,
     };
   });
+
