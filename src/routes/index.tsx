@@ -4,16 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/site-chrome";
 import {
   Search,
-  Heart,
-  ShoppingCart,
-  User,
   MapPin,
-  ChevronDown,
   ArrowRight,
   ShieldCheck,
   Sparkles,
   Phone,
   Users,
+  Wrench,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
@@ -166,7 +163,7 @@ function Home() {
                 Your Trusted Local Marketplace
               </h1>
               <p className="mt-1 text-xs md:text-sm text-white/85 max-w-2xl font-medium">
-                Buy & sell home appliances, solar panels, electronics, and construction materials locally across Kenya with safe transactions.
+                Buy &amp; sell goods, hire equipment, and find skilled services locally across Kenya — all in one trusted marketplace.
               </p>
             </div>
 
@@ -175,24 +172,24 @@ function Home() {
               onSubmit={handleSearch}
               className="w-full rounded-xl bg-white shadow-md ring-1 ring-black/5 p-2"
             >
-              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto] items-center gap-1.5 md:gap-2">
-                <div className="flex items-center gap-2.5 px-3 py-1 border-b md:border-b-0">
-                  <Search className="h-4.5 w-4.5 text-muted-foreground shrink-0" />
+              <div className="flex flex-col md:flex-row items-stretch md:items-center gap-1.5 md:gap-0">
+                {/* Search input — fills remaining space */}
+                <div className="flex flex-1 items-center gap-2.5 px-3 py-1.5">
+                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="What are you looking for?"
-                    className="w-full bg-transparent outline-none text-xs md:text-sm text-foreground placeholder:text-muted-foreground py-1"
+                    className="w-full bg-transparent outline-none text-xs md:text-sm text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
 
-                {/* Category Select */}
-                <div className="flex items-center gap-1.5 px-3 py-1 border-b md:border-b-0 md:border-l text-xs md:text-sm text-foreground">
-                  <span className="text-muted-foreground shrink-0">Category:</span>
+                {/* Category Select — compact */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 border-t md:border-t-0 md:border-l min-w-[140px]">
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="bg-transparent outline-none font-semibold cursor-pointer max-w-[100px] md:max-w-none text-ellipsis overflow-hidden text-xs md:text-sm"
+                    className="w-full bg-transparent outline-none font-semibold cursor-pointer text-xs md:text-sm text-foreground"
                   >
                     <option value="">All Categories</option>
                     {categories.map((c) => (
@@ -203,34 +200,31 @@ function Home() {
                   </select>
                 </div>
 
-                {/* Location Select */}
-                <div className="flex items-center gap-1.5 px-3 py-1 border-b md:border-b-0 md:border-l text-xs md:text-sm text-foreground">
+                {/* Location Select — compact */}
+                <div className="flex items-center gap-1.5 px-3 py-1.5 border-t md:border-t-0 md:border-l min-w-[140px]">
                   <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                  <div className="leading-tight flex flex-col">
-                    <span className="text-[9px] uppercase tracking-wide text-muted-foreground">
-                      Location
-                    </span>
-                    <select
-                      value={selectedCounty}
-                      onChange={(e) => setSelectedCounty(e.target.value)}
-                      className="bg-transparent outline-none font-semibold cursor-pointer text-xs md:text-sm"
-                    >
-                      <option value="">All Counties</option>
-                      {counties.map((co) => (
-                        <option key={co.id} value={co.id}>
-                          {co.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <select
+                    value={selectedCounty}
+                    onChange={(e) => setSelectedCounty(e.target.value)}
+                    className="w-full bg-transparent outline-none font-semibold cursor-pointer text-xs md:text-sm text-foreground"
+                  >
+                    <option value="">All Counties</option>
+                    {counties.map((co) => (
+                      <option key={co.id} value={co.id}>
+                        {co.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <button
-                  type="submit"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white px-4 py-2 text-xs md:text-sm font-bold transition cursor-pointer"
-                >
-                  Search <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                <div className="px-2">
+                  <button
+                    type="submit"
+                    className="w-full inline-flex items-center justify-center gap-1.5 rounded-lg bg-primary hover:bg-primary-dark text-white px-5 py-2.5 text-xs md:text-sm font-bold transition cursor-pointer"
+                  >
+                    Search <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -271,6 +265,47 @@ function Home() {
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      {/* FOR HIRE & SERVICES QUICK ACCESS */}
+      <section className="mx-auto max-w-7xl w-full px-4 pb-4">
+        <h2 className="text-lg font-extrabold text-primary-dark uppercase tracking-tight mb-3">
+          Need a Service or Hire?
+        </h2>
+        <div className="grid grid-cols-2 gap-4">
+          <Link
+            to="/browse"
+            search={{ listing_type: "hire" }}
+            className="group relative overflow-hidden rounded-xl bg-amber-50 border border-amber-200 hover:shadow-md transition p-5 flex items-center gap-4"
+          >
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-amber-500/15 text-amber-600 group-hover:bg-amber-500/25 transition">
+              <Wrench className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-extrabold text-amber-800 text-base">For Hire</h3>
+              <p className="text-xs text-amber-700/80 mt-0.5">Tents, generators, tools &amp; equipment</p>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                Browse <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </Link>
+          <Link
+            to="/browse"
+            search={{ listing_type: "service" }}
+            className="group relative overflow-hidden rounded-xl bg-emerald-50 border border-emerald-200 hover:shadow-md transition p-5 flex items-center gap-4"
+          >
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-emerald-500/15 text-emerald-600 group-hover:bg-emerald-500/25 transition">
+              <Users className="h-6 w-6" />
+            </div>
+            <div className="min-w-0">
+              <h3 className="font-extrabold text-emerald-800 text-base">Services</h3>
+              <p className="text-xs text-emerald-700/80 mt-0.5">Plumbing, cleaning, masonry &amp; more</p>
+              <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-emerald-700">
+                Browse <ArrowRight className="h-3 w-3" />
+              </span>
+            </div>
+          </Link>
         </div>
       </section>
 

@@ -11,8 +11,10 @@ import {
   Coins,
   Check,
   X,
-  ChevronRight,
   ChevronDown,
+  ShoppingBag,
+  Wrench,
+  Users,
 } from "lucide-react";
 
 // Define the search validator schema using zod
@@ -20,6 +22,8 @@ const searchSchema = z.object({
   q: z.string().optional().catch(""),
   category: z.string().optional().catch(""),
   county: z.number().optional().catch(undefined),
+  sub_county: z.number().optional().catch(undefined),
+  listing_type: z.enum(["sale", "hire", "service"]).optional().catch(undefined),
   minPrice: z.number().optional().catch(undefined),
   maxPrice: z.number().optional().catch(undefined),
 });
@@ -29,10 +33,10 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
   head: () => ({
     meta: [
-      { title: "Browse Marketplace — Vutabiz" },
+      { title: "Browse Marketplace – Vutabiz" },
       {
         name: "description",
-        content: "Browse home appliances and building materials for sale across Kenya.",
+        content: "Browse home appliances, building materials, and services for sale across Kenya.",
       },
     ],
   }),
@@ -45,6 +49,8 @@ type ListingRow = {
   image_url: string | null;
   town: string | null;
   county_id: number | null;
+  listing_type: "sale" | "hire" | "service" | null;
+  price_type: "fixed" | "daily" | "hourly" | null;
   created_at: string;
 };
 
@@ -60,13 +66,32 @@ type County = {
   name: string;
 };
 
+type SubCounty = {
+  id: number;
+  county_id: number;
+  name: string;
+};
+
+const LISTING_TYPE_LABELS: Record<string, { label: string; icon: typeof ShoppingBag; color: string }> = {
+  sale: { label: "For Sale", icon: ShoppingBag, color: "bg-primary/10 text-primary-dark" },
+  hire: { label: "For Hire", icon: Wrench, color: "bg-amber-500/10 text-amber-700" },
+  service: { label: "Service", icon: Users, color: "bg-emerald-500/10 text-emerald-700" },
+};
+
+const PRICE_TYPE_SUFFIX: Record<string, string> = {
+  fixed: "",
+  daily: "/day",
+  hourly: "/hr",
+};
+
 function Browse() {
-  const { q, category, county, minPrice, maxPrice } = Route.useSearch();
+  const { q, category, county, sub_county, listing_type, minPrice, maxPrice } = Route.useSearch();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ListingRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [counties, setCounties] = useState<County[]>([]);
+  const [subCounties, setSubCounties] = useState<SubCounty[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filter input states
@@ -76,9 +101,12 @@ function Browse() {
   const [selectedCounty, setSelectedCounty] = useState<string>(
     county !== undefined ? String(county) : "",
   );
+  const [selectedSubCounty, setSelectedSubCounty] = useState<string>(
+    sub_county !== undefined ? String(sub_county) : "",
+  );
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Fetch static categories and counties once
+  // Fetch static categories, counties and sub_counties once
   useEffect(() => {
     supabase
       .from("categories")
@@ -94,6 +122,13 @@ function Browse() {
       .then(({ data }) => {
         setCounties((data as County[]) ?? []);
       });
+    supabase
+      .from("sub_counties")
+      .select("id,county_id,name")
+      .order("name")
+      .then(({ data }) => {
+        setSubCounties((data as SubCounty[]) ?? []);
+      });
   }, []);
 
   // Sync state with URL updates
@@ -102,7 +137,8 @@ function Browse() {
     setMinPriceVal(minPrice !== undefined ? String(minPrice) : "");
     setMaxPriceVal(maxPrice !== undefined ? String(maxPrice) : "");
     setSelectedCounty(county !== undefined ? String(county) : "");
-  }, [q, category, county, minPrice, maxPrice]);
+    setSelectedSubCounty(sub_county !== undefined ? String(sub_county) : "");
+  }, [q, category, county, sub_county, listing_type, minPrice, maxPrice]);
 
   // Main search query execution
   useEffect(() => {
@@ -111,7 +147,7 @@ function Browse() {
       try {
         let query = supabase
           .from("listings")
-          .select("id,title,price,image_url,town,county_id,created_at")
+          .select("id,title,price,image_url,town,county_id,listing_type,price_type,created_at")
           .eq("status", "active");
 
         if (q) {
@@ -120,6 +156,14 @@ function Browse() {
 
         if (county) {
           query = query.eq("county_id", county);
+        }
+
+        if (sub_county) {
+          query = query.eq("sub_county_id", sub_county);
+        }
+
+        if (listing_type) {
+          query = query.eq("listing_type", listing_type);
         }
 
         if (minPrice !== undefined) {
@@ -176,7 +220,7 @@ function Browse() {
     }, 200);
 
     return () => clearTimeout(handler);
-  }, [q, category, county, minPrice, maxPrice, categories]);
+  }, [q, category, county, sub_county, listing_type, minPrice, maxPrice, categories]);
 
   // Construct Category tree (Parent -> Children)
   const categoryTree = useMemo(() => {
@@ -187,11 +231,19 @@ function Browse() {
     }));
   }, [categories]);
 
+  // Sub-counties filtered by selected county
+  const subCountiesForCounty = useMemo(
+    () => subCounties.filter((sc) => sc.county_id === Number(selectedCounty)),
+    [subCounties, selectedCounty],
+  );
+
   // Apply filters function
   const applyFilters = (updates: {
     q?: string;
     category?: string;
     county?: number;
+    sub_county?: number;
+    listing_type?: "sale" | "hire" | "service";
     minPrice?: number;
     maxPrice?: number;
   }) => {
@@ -202,6 +254,12 @@ function Browse() {
         category:
           updates.category !== undefined ? updates.category || undefined : category || undefined,
         county: updates.county !== undefined ? updates.county || undefined : county || undefined,
+        sub_county:
+          updates.sub_county !== undefined
+            ? updates.sub_county || undefined
+            : sub_county || undefined,
+        listing_type:
+          updates.listing_type !== undefined ? updates.listing_type : listing_type || undefined,
         minPrice:
           updates.minPrice !== undefined
             ? updates.minPrice !== -1
@@ -231,6 +289,7 @@ function Browse() {
     setMinPriceVal("");
     setMaxPriceVal("");
     setSelectedCounty("");
+    setSelectedSubCounty("");
     navigate({
       to: "/browse",
       search: {},
@@ -239,6 +298,7 @@ function Browse() {
 
   // Find names of active filters for chips
   const activeCountyName = counties.find((co) => co.id === county)?.name;
+  const activeSubCountyName = subCounties.find((sc) => sc.id === sub_county)?.name;
   const activeCategoryName = categories.find((c) => c.slug === category)?.name;
 
   return (
@@ -251,7 +311,7 @@ function Browse() {
             <h1 className="text-xl font-extrabold text-primary-dark tracking-tight">
               Marketplace
             </h1>
-            <p className="text-xs text-muted-foreground mt-0.5">Find amazing items across Kenya</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Find amazing items & services across Kenya</p>
           </div>
           <button
             onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -259,6 +319,41 @@ function Browse() {
           >
             <SlidersHorizontal className="h-3.5 w-3.5" /> Filters
           </button>
+        </div>
+
+        {/* Listing type quick tabs */}
+        <div className="flex gap-2 mb-4 flex-wrap">
+          {(["", "sale", "hire", "service"] as const).map((type) => {
+            const isActive = (listing_type ?? "") === type;
+            const info = type ? LISTING_TYPE_LABELS[type] : null;
+            return (
+              <button
+                key={type || "all"}
+                onClick={() =>
+                  navigate({
+                    to: "/browse",
+                    search: {
+                      q: q || undefined,
+                      category: category || undefined,
+                      county: county || undefined,
+                      sub_county: sub_county || undefined,
+                      listing_type: (type as "sale" | "hire" | "service") || undefined,
+                      minPrice: minPrice || undefined,
+                      maxPrice: maxPrice || undefined,
+                    },
+                  })
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition cursor-pointer border ${
+                  isActive
+                    ? "bg-primary text-white border-primary shadow"
+                    : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
+                }`}
+              >
+                {info && <info.icon className="h-3 w-3" />}
+                {type ? info?.label : "All"}
+              </button>
+            );
+          })}
         </div>
 
         {/* Search header bar */}
@@ -270,13 +365,19 @@ function Browse() {
             onKeyDown={(e) => {
               if (e.key === "Enter") applyFilters({ q: searchVal });
             }}
-            placeholder="Search solar panels, fridges, iron sheets, TVs..."
+            placeholder="Search solar panels, fridges, plumbing, TVs..."
             className="w-full rounded-xl border border-border/70 bg-card pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary shadow-sm text-xs md:text-sm"
           />
         </div>
 
         {/* Filter chips */}
-        {(q || category || county || minPrice !== undefined || maxPrice !== undefined) && (
+        {(q ||
+          category ||
+          county ||
+          sub_county ||
+          listing_type ||
+          minPrice !== undefined ||
+          maxPrice !== undefined) && (
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
               Active Filters:
@@ -285,6 +386,20 @@ function Browse() {
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
                 "{q}"{" "}
                 <X className="h-3 w-3 cursor-pointer" onClick={() => applyFilters({ q: "" })} />
+              </span>
+            )}
+            {listing_type && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
+                {LISTING_TYPE_LABELS[listing_type]?.label}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() =>
+                    navigate({
+                      to: "/browse",
+                      search: { q: q || undefined, category: category || undefined, county: county || undefined },
+                    })
+                  }
+                />
               </span>
             )}
             {activeCategoryName && (
@@ -298,10 +413,32 @@ function Browse() {
             )}
             {activeCountyName && (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
-                County: {activeCountyName}{" "}
+                {activeCountyName}{" "}
                 <X
                   className="h-3 w-3 cursor-pointer"
-                  onClick={() => applyFilters({ county: undefined })}
+                  onClick={() =>
+                    navigate({
+                      to: "/browse",
+                      search: {
+                        q: q || undefined,
+                        category: category || undefined,
+                        listing_type: listing_type || undefined,
+                        minPrice: minPrice || undefined,
+                        maxPrice: maxPrice || undefined,
+                      },
+                    })
+                  }
+                />
+              </span>
+            )}
+            {activeSubCountyName && (
+              <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
+                {activeSubCountyName}{" "}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() =>
+                    applyFilters({ sub_county: undefined })
+                  }
                 />
               </span>
             )}
@@ -373,25 +510,52 @@ function Browse() {
               </div>
             </div>
 
-            {/* Location (County) Filter */}
+            {/* Location Filter: County → Sub-County */}
             <div className="bg-card rounded-xl ring-1 ring-black/5 shadow-sm p-4 border border-border/40">
               <h3 className="text-xs font-bold text-foreground mb-3 uppercase tracking-wider flex items-center gap-1.5">
                 <MapPin className="h-3.5 w-3.5 text-primary" /> Location
               </h3>
-              <select
-                value={selectedCounty}
-                onChange={(e) =>
-                  applyFilters({ county: e.target.value ? Number(e.target.value) : undefined })
-                }
-                className="w-full rounded-lg border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs cursor-pointer"
-              >
-                <option value="">All Counties</option>
-                {counties.map((co) => (
-                  <option key={co.id} value={co.id}>
-                    {co.name}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <select
+                  value={selectedCounty}
+                  onChange={(e) => {
+                    setSelectedCounty(e.target.value);
+                    setSelectedSubCounty("");
+                    applyFilters({
+                      county: e.target.value ? Number(e.target.value) : undefined,
+                      sub_county: undefined,
+                    });
+                  }}
+                  className="w-full rounded-lg border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs cursor-pointer"
+                >
+                  <option value="">All Counties</option>
+                  {counties.map((co) => (
+                    <option key={co.id} value={co.id}>
+                      {co.name}
+                    </option>
+                  ))}
+                </select>
+
+                {selectedCounty && subCountiesForCounty.length > 0 && (
+                  <select
+                    value={selectedSubCounty}
+                    onChange={(e) => {
+                      setSelectedSubCounty(e.target.value);
+                      applyFilters({
+                        sub_county: e.target.value ? Number(e.target.value) : undefined,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs cursor-pointer"
+                  >
+                    <option value="">All Sub-Counties</option>
+                    {subCountiesForCounty.map((sc) => (
+                      <option key={sc.id} value={sc.id}>
+                        {sc.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
 
             {/* Price Filter */}
@@ -444,49 +608,70 @@ function Browse() {
               </div>
             ) : items.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5 animate-in fade-in duration-300">
-                {items.map((it) => (
-                  <Link
-                    key={it.id}
-                    to="/listing/$id"
-                    params={{ id: it.id }}
-                    className="group rounded-xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300 flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="aspect-[16/10] bg-muted/20 overflow-hidden relative">
-                        {it.image_url ? (
-                          <img
-                            src={it.image_url}
-                            alt={it.title}
-                            className="w-full h-full object-cover group-hover:scale-102 transition-all duration-500"
-                          />
-                        ) : (
-                          <div className="w-full h-full grid place-items-center text-muted-foreground text-[10px]">
-                            No image
+                {items.map((it) => {
+                  const typeInfo = it.listing_type ? LISTING_TYPE_LABELS[it.listing_type] : null;
+                  const priceSuffix =
+                    it.price_type && it.price_type !== "fixed"
+                      ? PRICE_TYPE_SUFFIX[it.price_type]
+                      : "";
+                  return (
+                    <Link
+                      key={it.id}
+                      to="/listing/$id"
+                      params={{ id: it.id }}
+                      className="group rounded-xl overflow-hidden bg-card border border-border/40 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="aspect-[16/10] bg-muted/20 overflow-hidden relative">
+                          {it.image_url ? (
+                            <img
+                              src={it.image_url}
+                              alt={it.title}
+                              className="w-full h-full object-cover group-hover:scale-102 transition-all duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full grid place-items-center text-muted-foreground text-[10px]">
+                              No image
+                            </div>
+                          )}
+                          {/* Listing type badge */}
+                          {typeInfo && it.listing_type !== "sale" && (
+                            <span
+                              className={`absolute top-1.5 right-1.5 inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${typeInfo.color}`}
+                            >
+                              <typeInfo.icon className="h-2.5 w-2.5" />
+                              {typeInfo.label}
+                            </span>
+                          )}
+                          <div className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white px-1.5 py-0.5 rounded text-[9px] flex items-center gap-1">
+                            <MapPin className="h-2.5 w-2.5" /> {it.town}
                           </div>
-                        )}
-                        <div className="absolute bottom-1.5 left-1.5 bg-black/60 backdrop-blur-sm text-white px-1.5 py-0.5 rounded text-[9px] flex items-center gap-1">
-                          <MapPin className="h-2.5 w-2.5" /> {it.town}
+                        </div>
+                        <div className="p-2.5">
+                          <div className="text-xs font-bold text-foreground line-clamp-2 min-h-[32px] leading-tight group-hover:text-primary transition-colors">
+                            {it.title}
+                          </div>
                         </div>
                       </div>
-                      <div className="p-2.5">
-                        <div className="text-xs font-bold text-foreground line-clamp-2 min-h-[32px] leading-tight group-hover:text-primary transition-colors">
-                          {it.title}
+                      <div className="px-2.5 pb-2.5 pt-0 flex items-center justify-between border-t border-border/40 mt-0.5">
+                        <div className="text-primary-dark font-extrabold text-xs md:text-sm">
+                          KSh {Number(it.price).toLocaleString()}
+                          {priceSuffix && (
+                            <span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
+                              {priceSuffix}
+                            </span>
+                          )}
                         </div>
+                        <span className="text-[9px] text-muted-foreground">
+                          {new Date(it.created_at).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </span>
                       </div>
-                    </div>
-                    <div className="px-2.5 pb-2.5 pt-0 flex items-center justify-between border-t border-border/40 mt-0.5">
-                      <div className="text-primary-dark font-extrabold text-xs md:text-sm">
-                        KSh {Number(it.price).toLocaleString()}
-                      </div>
-                      <span className="text-[9px] text-muted-foreground">
-                        {new Date(it.created_at).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-10 bg-card rounded-xl border border-border/40 shadow-sm">
@@ -528,6 +713,35 @@ function Browse() {
                 </button>
               </div>
 
+              {/* Mobile Listing Type */}
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                  Listing Type
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["sale", "hire", "service"] as const).map((type) => {
+                    const info = LISTING_TYPE_LABELS[type];
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => {
+                          applyFilters({ listing_type: type });
+                          setShowMobileFilters(false);
+                        }}
+                        className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition cursor-pointer ${
+                          listing_type === type
+                            ? "border-primary bg-primary/10 text-primary-dark"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        <info.icon className="h-3.5 w-3.5" />
+                        {info.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Mobile Category Select */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -550,13 +764,18 @@ function Browse() {
               {/* Mobile Location Select */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                  Location (County)
+                  Location
                 </h3>
                 <select
                   value={selectedCounty}
-                  onChange={(e) =>
-                    applyFilters({ county: e.target.value ? Number(e.target.value) : undefined })
-                  }
+                  onChange={(e) => {
+                    setSelectedCounty(e.target.value);
+                    setSelectedSubCounty("");
+                    applyFilters({
+                      county: e.target.value ? Number(e.target.value) : undefined,
+                      sub_county: undefined,
+                    });
+                  }}
                   className="w-full rounded-lg border border-input bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary text-sm"
                 >
                   <option value="">All Counties</option>
@@ -566,6 +785,25 @@ function Browse() {
                     </option>
                   ))}
                 </select>
+                {selectedCounty && subCountiesForCounty.length > 0 && (
+                  <select
+                    value={selectedSubCounty}
+                    onChange={(e) => {
+                      setSelectedSubCounty(e.target.value);
+                      applyFilters({
+                        sub_county: e.target.value ? Number(e.target.value) : undefined,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-input bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary text-sm"
+                  >
+                    <option value="">All Sub-Counties</option>
+                    {subCountiesForCounty.map((sc) => (
+                      <option key={sc.id} value={sc.id}>
+                        {sc.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Mobile Price Select */}

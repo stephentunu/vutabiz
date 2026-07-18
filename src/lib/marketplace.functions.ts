@@ -8,12 +8,15 @@ const listingInput = z.object({
   price: z.number().min(0),
   category_id: z.number().int().nullable(),
   county_id: z.number().int().nullable(),
+  sub_county_id: z.number().int().nullable().optional(),
   ward_id: z.number().int().nullable(),
   town: z.string().max(120).optional().nullable(),
   image_url: z.string().url().max(500).optional().nullable(),
   distance_km: z.number().min(0).default(0),
   risk: z.enum(["low", "medium", "high"]).default("low"),
   duration_days: z.number().int().min(1).max(60).default(7),
+  listing_type: z.enum(["sale", "hire", "service"]).default("sale"),
+  price_type: z.enum(["fixed", "daily", "hourly"]).default("fixed"),
 });
 
 export const computeAdFee = createServerFn({ method: "POST" })

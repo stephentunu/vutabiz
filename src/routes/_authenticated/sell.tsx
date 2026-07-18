@@ -5,13 +5,23 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeAdFee, createListing, payListingAd } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, ShoppingBag, Wrench, Users } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
 type Cat = { id: number; name: string; parent_id: number | null };
 type County = { id: number; name: string };
-type Ward = { id: number; county_id: number; name: string };
+type SubCounty = { id: number; county_id: number; name: string };
+type Ward = { id: number; county_id: number; sub_county_id: number | null; name: string };
+
+type ListingType = "sale" | "hire" | "service";
+type PriceType = "fixed" | "daily" | "hourly";
+
+const LISTING_TYPE_OPTIONS: { value: ListingType; label: string; icon: typeof ShoppingBag; desc: string }[] = [
+  { value: "sale", label: "For Sale", icon: ShoppingBag, desc: "Sell goods at a fixed price" },
+  { value: "hire", label: "For Hire", icon: Wrench, desc: "Rent out equipment or space" },
+  { value: "service", label: "Service", icon: Users, desc: "Offer your skills & labour" },
+];
 
 function SellPage() {
   const navigate = useNavigate();
@@ -21,12 +31,17 @@ function SellPage() {
 
   const [cats, setCats] = useState<Cat[]>([]);
   const [counties, setCounties] = useState<County[]>([]);
+  const [subCounties, setSubCounties] = useState<SubCounty[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+
+  const [listingType, setListingType] = useState<ListingType>("sale");
+  const [priceType, setPriceType] = useState<PriceType>("fixed");
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
   const [price, setPrice] = useState<number>(1000);
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [countyId, setCountyId] = useState<number | "">("");
+  const [subCountyId, setSubCountyId] = useState<number | "">("");
   const [wardId, setWardId] = useState<number | "">("");
   const [town, setTown] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -50,20 +65,28 @@ function SellPage() {
       .order("name")
       .then(({ data }) => setCounties((data as County[]) ?? []));
     supabase
-      .from("wards")
+      .from("sub_counties")
       .select("id,county_id,name")
       .order("name")
+      .then(({ data }) => setSubCounties((data as SubCounty[]) ?? []));
+    supabase
+      .from("wards")
+      .select("id,county_id,sub_county_id,name")
+      .order("name")
       .then(({ data }) => setWards((data as Ward[]) ?? []));
+
+    // Pre-fill location from profile
     supabase.auth.getUser().then(({ data }) => {
       if (data.user)
         supabase
           .from("profiles")
-          .select("county_id,ward_id,town")
+          .select("county_id,sub_county_id,ward_id,town")
           .eq("id", data.user.id)
           .maybeSingle()
           .then(({ data: p }) => {
             if (p) {
               setCountyId(p.county_id ?? "");
+              setSubCountyId((p as { sub_county_id?: number | null }).sub_county_id ?? "");
               setWardId(p.ward_id ?? "");
               setTown(p.town ?? "");
             }
@@ -95,7 +118,22 @@ function SellPage() {
     return () => clearTimeout(t);
   }, [price, countyId, distance, risk, days, compute]);
 
-  const wardsForCounty = wards.filter((w) => w.county_id === Number(countyId));
+  // Derived filtered lists
+  const subCountiesForCounty = subCounties.filter((sc) => sc.county_id === Number(countyId));
+  const wardsForSubCounty = wards.filter(
+    (w) =>
+      w.county_id === Number(countyId) &&
+      (subCountyId ? w.sub_county_id === Number(subCountyId) : true),
+  );
+
+  // Filter categories based on listing type: services show skills categories
+  const filteredCats = cats.filter((c) => {
+    if (listingType === "service") {
+      // show semi-pro and unskilled parent/children only
+      return true; // let users pick any; skills cats will be prominent
+    }
+    return true;
+  });
 
   async function submitListing(e: React.FormEvent) {
     e.preventDefault();
@@ -108,12 +146,15 @@ function SellPage() {
           price,
           category_id: categoryId ? Number(categoryId) : null,
           county_id: countyId ? Number(countyId) : null,
+          sub_county_id: subCountyId ? Number(subCountyId) : null,
           ward_id: wardId ? Number(wardId) : null,
           town,
           image_url: imageUrl || null,
           distance_km: distance,
           risk,
           duration_days: days,
+          listing_type: listingType,
+          price_type: listingType === "sale" ? "fixed" : priceType,
         },
       });
       setCreatedId(res.id);
@@ -139,6 +180,15 @@ function SellPage() {
     }
   }
 
+  const priceLabel =
+    listingType === "sale"
+      ? "Price (KSh)"
+      : priceType === "daily"
+        ? "Rate / Day (KSh)"
+        : priceType === "hourly"
+          ? "Rate / Hour (KSh)"
+          : "Price (KSh)";
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -152,37 +202,117 @@ function SellPage() {
               onSubmit={submitListing}
               className="mt-4 bg-card rounded-xl shadow ring-1 ring-black/5 p-4 space-y-3"
             >
+              {/* ── Listing Type Tabs ── */}
+              <div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                  Listing Type
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {LISTING_TYPE_OPTIONS.map(({ value, label, icon: Icon, desc }) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => {
+                        setListingType(value);
+                        if (value === "sale") setPriceType("fixed");
+                        else if (value === "hire") setPriceType("daily");
+                        else setPriceType("hourly");
+                      }}
+                      className={`flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 text-center transition cursor-pointer ${
+                        listingType === value
+                          ? "border-primary bg-primary/8 text-primary-dark"
+                          : "border-border hover:border-primary/40 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 ${listingType === value ? "text-primary" : ""}`} />
+                      <span className="text-[11px] font-bold leading-tight">{label}</span>
+                      <span className="text-[9px] leading-tight hidden sm:block">{desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* ── Price Type (Hire/Service only) ── */}
+              {listingType !== "sale" && (
+                <div>
+                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                    Pricing Model
+                  </div>
+                  <div className="flex gap-2">
+                    {(["fixed", "daily", "hourly"] as PriceType[]).map((pt) => (
+                      <button
+                        key={pt}
+                        type="button"
+                        onClick={() => setPriceType(pt)}
+                        className={`flex-1 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition cursor-pointer ${
+                          priceType === pt
+                            ? "border-primary bg-primary/10 text-primary-dark"
+                            : "border-border text-muted-foreground hover:border-primary/40"
+                        }`}
+                      >
+                        {pt === "fixed" ? "Fixed" : pt === "daily" ? "Per Day" : "Per Hour"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Field label="Title" v={title} on={setTitle} required />
               <Field label="Description" v={desc} on={setDesc} textarea />
+
               <div className="grid grid-cols-2 gap-2.5">
-                <NumField label="Price (KSh)" v={price} on={setPrice} required />
+                <NumField label={priceLabel} v={price} on={setPrice} required />
                 <Sel
                   label="Category"
                   v={categoryId}
                   on={setCategoryId}
                   opts={[
                     { v: "", l: "Select" },
-                    ...cats.map((c) => ({ v: c.id, l: c.parent_id ? `— ${c.name}` : c.name })),
+                    ...filteredCats.map((c) => ({ v: c.id, l: c.parent_id ? `— ${c.name}` : c.name })),
                   ]}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <Sel
-                  label="County"
-                  v={countyId}
-                  on={(v) => {
-                    setCountyId(v);
-                    setWardId("");
-                  }}
-                  opts={[{ v: "", l: "Select" }, ...counties.map((c) => ({ v: c.id, l: c.name }))]}
-                />
-                <Sel
-                  label="Ward"
-                  v={wardId}
-                  on={setWardId}
-                  opts={[{ v: "", l: "—" }, ...wardsForCounty.map((w) => ({ v: w.id, l: w.name }))]}
-                />
+
+              {/* ── 3-tier location: County → Sub-County → Ward ── */}
+              <div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Location
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <Sel
+                    label="County"
+                    v={countyId}
+                    on={(v) => {
+                      setCountyId(v);
+                      setSubCountyId("");
+                      setWardId("");
+                    }}
+                    opts={[{ v: "", l: "Select county" }, ...counties.map((c) => ({ v: c.id, l: c.name }))]}
+                  />
+                  <Sel
+                    label="Sub-County"
+                    v={subCountyId}
+                    on={(v) => {
+                      setSubCountyId(v);
+                      setWardId("");
+                    }}
+                    opts={[
+                      { v: "", l: countyId ? "Select sub-county" : "— pick county first" },
+                      ...subCountiesForCounty.map((sc) => ({ v: sc.id, l: sc.name })),
+                    ]}
+                  />
+                  <Sel
+                    label="Ward"
+                    v={wardId}
+                    on={setWardId}
+                    opts={[
+                      { v: "", l: subCountyId ? "Select ward" : "— pick sub-county first" },
+                      ...wardsForSubCounty.map((w) => ({ v: w.id, l: w.name })),
+                    ]}
+                  />
+                </div>
               </div>
+
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Town / Estate" v={town} on={setTown} />
                 <Field label="Image URL" v={imageUrl} on={setImageUrl} />
@@ -291,6 +421,7 @@ function Field({
     </label>
   );
 }
+
 function NumField({
   label,
   v,
@@ -316,6 +447,7 @@ function NumField({
     </label>
   );
 }
+
 function Sel<T extends string | number | "">({
   label,
   v,
