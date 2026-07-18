@@ -23,7 +23,7 @@ export const computeAdFee = createServerFn({ method: "POST" })
     const { data: profile } = await context.supabase.from("profiles").select("market_share").eq("id", context.userId).maybeSingle();
     const { data: fee, error } = await context.supabase.rpc("calc_ad_fee", {
       _price: data.price,
-      _county_id: data.county_id,
+      _county_id: data.county_id as number,
       _distance_km: data.distance_km,
       _market_share: profile?.market_share ?? 0,
       _risk: data.risk,
@@ -40,7 +40,7 @@ export const createListing = createServerFn({ method: "POST" })
     const { data: profile } = await context.supabase.from("profiles").select("market_share").eq("id", context.userId).maybeSingle();
     const { data: fee } = await context.supabase.rpc("calc_ad_fee", {
       _price: data.price,
-      _county_id: data.county_id,
+      _county_id: data.county_id as number,
       _distance_km: data.distance_km,
       _market_share: profile?.market_share ?? 0,
       _risk: data.risk,
