@@ -20,7 +20,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 type County = { id: number; name: string };
-type Ward = { id: number; county_id: number; name: string };
+type SubCounty = { id: number; county_id: number; name: string };
+type Ward = { id: number; county_id: number; sub_county_id: number | null; name: string };
 
 const ADMIN_EMAIL = "admins@gmail.com";
 
@@ -30,6 +31,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [counties, setCounties] = useState<County[]>([]);
+  const [subCounties, setSubCounties] = useState<SubCounty[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
 
   const [email, setEmail] = useState("");
@@ -37,6 +39,7 @@ function AuthPage() {
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [countyId, setCountyId] = useState<number | "">("");
+  const [subCountyId, setSubCountyId] = useState<number | "">("");
   const [wardId, setWardId] = useState<number | "">("");
   const [town, setTown] = useState("");
   const [building, setBuilding] = useState("");
@@ -52,8 +55,13 @@ function AuthPage() {
       .order("name")
       .then(({ data }) => setCounties((data as County[]) ?? []));
     supabase
-      .from("wards")
+      .from("sub_counties")
       .select("id,county_id,name")
+      .order("name")
+      .then(({ data }) => setSubCounties((data as SubCounty[]) ?? []));
+    supabase
+      .from("wards")
+      .select("id,county_id,sub_county_id,name")
       .order("name")
       .then(({ data }) => setWards((data as Ward[]) ?? []));
     supabase.auth.getSession().then(({ data }) => {
@@ -64,9 +72,19 @@ function AuthPage() {
     });
   }, [navigate, next]);
 
-  const wardsForCounty = useMemo(
-    () => wards.filter((w) => w.county_id === Number(countyId)),
-    [wards, countyId],
+  const subCountiesForCounty = useMemo(
+    () => subCounties.filter((sc) => sc.county_id === Number(countyId)),
+    [subCounties, countyId],
+  );
+
+  const wardsForSubCounty = useMemo(
+    () =>
+      wards.filter(
+        (w) =>
+          w.county_id === Number(countyId) &&
+          (subCountyId ? w.sub_county_id === Number(subCountyId) : true),
+      ),
+    [wards, countyId, subCountyId],
   );
 
   // When admin email typed in sign-in mode: reset the "not found" flag
@@ -95,6 +113,7 @@ function AuthPage() {
               full_name: fullName,
               phone,
               county_id: String(effectiveCounty || 47),
+              sub_county_id: subCountyId ? String(subCountyId) : "",
               ward_id: wardId ? String(wardId) : "",
               town: town || (isAdminEmail ? "Nairobi CBD" : null),
               building: building || null,
@@ -290,6 +309,7 @@ function AuthPage() {
                     value={countyId}
                     onChange={(v) => {
                       setCountyId(v === "" ? "" : Number(v));
+                      setSubCountyId("");
                       setWardId("");
                     }}
                     options={[
@@ -298,14 +318,27 @@ function AuthPage() {
                     ]}
                   />
                   <Select
+                    label="Sub-County"
+                    value={subCountyId}
+                    onChange={(v) => {
+                      setSubCountyId(v === "" ? "" : Number(v));
+                      setWardId("");
+                    }}
+                    options={[
+                      { value: "", label: countyId ? "Select Sub-County" : "— Select County First" },
+                      ...subCountiesForCounty.map((sc) => ({ value: sc.id, label: sc.name })),
+                    ]}
+                    disabled={!countyId}
+                  />
+                  <Select
                     label="Ward"
                     value={wardId}
                     onChange={(v) => setWardId(v === "" ? "" : Number(v))}
                     options={[
-                      { value: "", label: wardsForCounty.length ? "Select Ward" : "—" },
-                      ...wardsForCounty.map((w) => ({ value: w.id, label: w.name })),
+                      { value: "", label: wardsForSubCounty.length ? "Select Ward" : "— Select Sub-County First" },
+                      ...wardsForSubCounty.map((w) => ({ value: w.id, label: w.name })),
                     ]}
-                    disabled={!countyId}
+                    disabled={!subCountyId}
                   />
                   <Input
                     label="Town / Estate"
