@@ -53,7 +53,7 @@ type Profile = {
 function OfferStatusBadge({ status }: { status: string }) {
   if (status === "accepted")
     return (
-      <span className="inline-flex items-center gap-1 text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
+      <span className="inline-flex items-center gap-1 text-xs font-bold bg-orange-50 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full">
         <CheckCircle2 className="h-3 w-3" /> Accepted
       </span>
     );
@@ -210,7 +210,7 @@ function Dashboard() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {[
                 { icon: Package, label: "Total Listings", value: listings.length, color: "bg-primary/10 text-primary" },
-                { icon: CheckCircle2, label: "Active Listings", value: activeListings, color: "bg-emerald-50 text-emerald-700" },
+                { icon: CheckCircle2, label: "Active Listings", value: activeListings, color: "bg-orange-50 text-orange-700" },
                 { icon: HandCoins, label: "Pending Offers", value: pendingOffers, color: "bg-amber-50 text-amber-700" },
               ].map((s) => (
                 <div key={s.label} className="bg-card border border-border/40 rounded-2xl shadow-sm p-4 flex items-center gap-3">
@@ -276,7 +276,7 @@ function Dashboard() {
                       <span className="mx-1.5 text-border">·</span>
                       Ad fee: KSh {l.ad_fee_ksh}
                       <span className="mx-1.5 text-border">·</span>
-                      <span className={l.ad_paid ? "text-emerald-600 font-semibold" : "text-amber-600 font-semibold"}>
+                      <span className={l.ad_paid ? "text-orange-600 font-semibold" : "text-amber-600 font-semibold"}>
                         {l.ad_paid ? "✓ Paid" : "Unpaid"}
                       </span>
                     </div>
@@ -284,7 +284,7 @@ function Dashboard() {
                   <span
                     className={`text-xs font-bold px-2.5 py-1 rounded-full border ${
                       l.status === "active"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        ? "bg-orange-50 text-orange-700 border-orange-200"
                         : l.status === "sold"
                           ? "bg-amber-50 text-amber-700 border-amber-200"
                           : "bg-muted text-muted-foreground border-border"
@@ -375,7 +375,7 @@ function Dashboard() {
                         <button
                           onClick={() => act(o.id, "accepted")}
                           title="Accept offer"
-                          className="grid h-9 w-9 place-items-center rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition cursor-pointer"
+                          className="grid h-9 w-9 place-items-center rounded-xl bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition cursor-pointer"
                         >
                           <Check className="h-4 w-4" />
                         </button>

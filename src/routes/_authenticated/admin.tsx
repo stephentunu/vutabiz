@@ -62,7 +62,7 @@ function StatCard({
 
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    active: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    active: "bg-orange-50 text-orange-700 border-orange-200",
     sold: "bg-amber-50 text-amber-700 border-amber-200",
     deleted: "bg-red-50 text-red-600 border-red-200",
   };
@@ -150,7 +150,7 @@ function AdminPage() {
     { icon: Users, label: "Total Users", value: s.users, tone: "bg-blue-50 text-blue-700", sub: "Registered accounts" },
     { icon: Package, label: "Total Listings", value: s.listings, tone: "bg-primary/10 text-primary-dark", sub: "All time" },
     { icon: HandCoins, label: "Total Offers", value: s.offers, tone: "bg-amber-50 text-amber-700", sub: "Buyer proposals" },
-    { icon: TrendingUp, label: "Revenue (KSh)", value: Number(s.revenue).toLocaleString(), tone: "bg-emerald-50 text-emerald-700", sub: "Ad fees collected" },
+    { icon: TrendingUp, label: "Revenue (KSh)", value: Number(s.revenue).toLocaleString(), tone: "bg-orange-50 text-orange-700", sub: "Ad fees collected" },
   ];
 
   return (
@@ -197,7 +197,7 @@ function AdminPage() {
                 { label: "Users", val: s.users, color: "bg-blue-400" },
                 { label: "Listings", val: s.listings, color: "bg-primary" },
                 { label: "Offers", val: s.offers, color: "bg-amber-400" },
-                { label: "Revenue ÷100", val: Math.round(s.revenue / 100), color: "bg-emerald-400" },
+                { label: "Revenue ÷100", val: Math.round(s.revenue / 100), color: "bg-orange-400" },
               ].map((bar) => {
                 const max = Math.max(s.users, s.listings, s.offers, Math.round(s.revenue / 100), 1);
                 const pct = Math.max(8, Math.round((bar.val / max) * 100));

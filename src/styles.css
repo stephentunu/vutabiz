@@ -41,38 +41,48 @@
 :root {
   --radius: 0.875rem;
 
-  /* Vutabiz Kenyan marketplace palette */
-  --cream: oklch(0.965 0.012 85);
-  --background: oklch(0.965 0.012 85);
-  --foreground: oklch(0.22 0.03 150);
+  /* ── Vutabiz Signature Palette ──────────────────────────────────────────
+     Primary:    Burnt Orange  — warm, earthy, distinctive (hue ~38)
+     Primary-dk: Deep Amber    — darker shade for text & dark backgrounds
+     Accent:     Sage Green    — subtle forest green complement (hue ~148)
+     Background: Warm Linen    — off-white with orange warmth
+     The combination is unique, vibrant, and firmly NOT Jiji green.
+  ────────────────────────────────────────────────────────────────────── */
+
+  --cream: oklch(0.97 0.014 68);
+  --background: oklch(0.97 0.014 68);          /* warm linen */
+  --foreground: oklch(0.2 0.04 38);            /* deep amber-brown text */
 
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.03 150);
+  --card-foreground: oklch(0.2 0.04 38);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.03 150);
+  --popover-foreground: oklch(0.2 0.04 38);
 
-  --primary: oklch(0.55 0.17 145);
+  /* Primary: burnt orange — e.g. buttons, links, badges */
+  --primary: oklch(0.62 0.17 38);              /* vibrant burnt orange */
   --primary-foreground: oklch(1 0 0);
-  --primary-dark: oklch(0.38 0.13 148);
+  --primary-dark: oklch(0.44 0.14 35);         /* deep amber for headings */
 
-  --secondary: oklch(0.94 0.02 145);
-  --secondary-foreground: oklch(0.32 0.09 148);
+  /* Secondary: very light warm orange tint */
+  --secondary: oklch(0.94 0.025 55);
+  --secondary-foreground: oklch(0.38 0.1 38);
 
-  --muted: oklch(0.94 0.015 85);
-  --muted-foreground: oklch(0.5 0.02 150);
+  --muted: oklch(0.94 0.018 68);
+  --muted-foreground: oklch(0.52 0.03 55);
 
-  --accent: oklch(0.72 0.16 62);
+  /* Accent: sage/forest green — provides the green touch */
+  --accent: oklch(0.52 0.13 148);             /* muted forest green */
   --accent-foreground: oklch(1 0 0);
 
   --destructive: oklch(0.58 0.22 27);
   --destructive-foreground: oklch(1 0 0);
 
-  --border: oklch(0.9 0.015 85);
-  --input: oklch(0.92 0.015 85);
-  --ring: oklch(0.55 0.17 145);
+  --border: oklch(0.91 0.018 65);
+  --input: oklch(0.93 0.018 65);
+  --ring: oklch(0.62 0.17 38);               /* focus ring matches primary */
 }
 
-/* Kenyan geometric side pattern (base64-free, pure SVG data URI) */
+/* Kenyan geometric side pattern */
 @layer base {
   * {
     border-color: var(--color-border);
@@ -102,9 +112,9 @@
   background:
     linear-gradient(
       115deg,
-      oklch(0.42 0.13 148) 0%,
-      oklch(0.42 0.13 148) 42%,
-      oklch(0.42 0.13 148 / 0.55) 55%,
+      oklch(0.42 0.16 35) 0%,         /* deep burnt orange */
+      oklch(0.44 0.14 40) 32%,         /* warm amber */
+      oklch(0.40 0.12 40 / 0.6) 52%,  /* fading amber */
       transparent 70%
     ),
     var(--hero-img) center/cover no-repeat;
