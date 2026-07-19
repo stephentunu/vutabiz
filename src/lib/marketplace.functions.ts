@@ -8,7 +8,7 @@ const listingInput = z.object({
   price: z.number().min(0),
   category_id: z.number().int().nullable(),
   county_id: z.number().int().nullable(),
-  sub_county_id: z.number().int().nullable().optional(),
+  subcounty_id: z.number().int().nullable().optional(),
   ward_id: z.number().int().nullable(),
   town: z.string().max(120).optional().nullable(),
   image_url: z.string().url().max(500).optional().nullable(),

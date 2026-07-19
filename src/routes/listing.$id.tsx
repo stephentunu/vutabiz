@@ -29,7 +29,7 @@ type Listing = {
   seller_id: string;
   status: string;
   county_id: number | null;
-  sub_county_id: number | null;
+  subcounty_id: number | null;
   ward_id: number | null;
   town: string | null;
   listing_type: "sale" | "hire" | "service" | "donation" | null;
@@ -89,7 +89,7 @@ function ListingPage() {
     const { data: l } = await supabase
       .from("listings")
       .select(
-        "id,title,description,price,image_url,seller_id,status,county_id,sub_county_id,ward_id,town,listing_type,price_type,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
+        "id,title,description,price,image_url,seller_id,status,county_id,subcounty_id,ward_id,town,listing_type,price_type,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
       )
       .eq("id", id)
       .maybeSingle();
@@ -109,11 +109,11 @@ function ListingPage() {
           .maybeSingle();
         setCountyName((c?.name as string) ?? "");
       }
-      if ((l as Listing).sub_county_id) {
+      if ((l as Listing).subcounty_id) {
         const { data: sc } = await supabase
-          .from("sub_counties")
+          .from("subcounties")
           .select("name")
-          .eq("id", (l as Listing).sub_county_id!)
+          .eq("id", (l as Listing).subcounty_id!)
           .maybeSingle();
         setSubCountyName((sc?.name as string) ?? "");
       }
