@@ -179,7 +179,7 @@ function Browse() {
     }, 200);
 
     return () => clearTimeout(handler);
-  }, [q, category, county, minPrice, maxPrice, categories]);
+  }, [q, category, county, subcounty, ward, type, minPrice, maxPrice, categories]);
 
   // Construct Category tree (Parent -> Children)
   const categoryTree = useMemo(() => {
