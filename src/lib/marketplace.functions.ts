@@ -30,7 +30,7 @@ const listingInput = z.object({
 
 export const computeAdFee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (input: {
       price: number;
       county_id: number | null;
@@ -59,7 +59,7 @@ export const computeAdFee = createServerFn({ method: "POST" })
 
 export const createListing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: unknown) => listingInput.parse(raw))
+  .validator((raw: unknown) => listingInput.parse(raw))
   .handler(async ({ data, context }) => {
     const { data: profile } = await context.supabase
       .from("profiles")
@@ -86,7 +86,7 @@ export const createListing = createServerFn({ method: "POST" })
 
 export const payListingAd = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: { listing_id: string; mpesa_ref: string }) => raw)
+  .validator((raw: { listing_id: string; mpesa_ref: string }) => raw)
   .handler(async ({ data, context }) => {
     const { data: listing, error: le } = await context.supabase
       .from("listings")
@@ -116,7 +116,7 @@ export const payListingAd = createServerFn({ method: "POST" })
 
 export const updateListingStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: { listing_id: string; status: "active" | "sold" | "deleted" }) => raw)
+  .validator((raw: { listing_id: string; status: "active" | "sold" | "deleted" }) => raw)
   .handler(async ({ data, context }) => {
     // Check if the caller is an admin — admins can modify any listing
     const { data: isAdminData } = await context.supabase.rpc(
@@ -138,7 +138,7 @@ export const updateListingStatus = createServerFn({ method: "POST" })
 
 export const makeOffer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: { listing_id: string; amount: number; message?: string }) => raw)
+  .validator((raw: { listing_id: string; amount: number; message?: string }) => raw)
   .handler(async ({ data, context }) => {
     const { data: listing } = await context.supabase
       .from("listings")
@@ -165,7 +165,7 @@ export const makeOffer = createServerFn({ method: "POST" })
 
 export const respondOffer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((raw: { offer_id: string; action: "accepted" | "rejected" }) => raw)
+  .validator((raw: { offer_id: string; action: "accepted" | "rejected" }) => raw)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("offers")
