@@ -289,7 +289,7 @@ function Browse() {
           ].map((t) => (
             <button
               key={t.v}
-              onClick={() => navigate({ to: "/browse", search: (prev) => ({ ...prev, type: t.v || undefined }) })}
+              onClick={() => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, type: t.v || undefined }) })}
               className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${(type || "") === t.v ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
             >
               {t.l}
