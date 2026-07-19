@@ -311,7 +311,7 @@ function Browse() {
             county={county}
             subcounty={subcounty}
             ward={ward}
-            onPick={(patch) => navigate({ to: "/browse", search: (prev) => ({ ...prev, ...patch }) })}
+            onPick={(patch) => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, ...patch }) })}
           />
         )}
 
