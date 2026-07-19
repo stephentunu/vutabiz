@@ -20,9 +20,13 @@ const searchSchema = z.object({
   q: z.string().optional().catch(""),
   category: z.string().optional().catch(""),
   county: z.number().optional().catch(undefined),
+  subcounty: z.number().optional().catch(undefined),
+  ward: z.number().optional().catch(undefined),
+  type: z.string().optional().catch(""),
   minPrice: z.number().optional().catch(undefined),
   maxPrice: z.number().optional().catch(undefined),
 });
+
 
 export const Route = createFileRoute("/browse")({
   validateSearch: searchSchema,
@@ -60,14 +64,21 @@ type County = {
   name: string;
 };
 
+type SubCounty = { id: number; county_id: number; name: string };
+type Ward = { id: number; county_id: number; subcounty_id: number | null; name: string };
+
 function Browse() {
-  const { q, category, county, minPrice, maxPrice } = Route.useSearch();
+  const { q, category, county, subcounty, ward, type, minPrice, maxPrice } = Route.useSearch();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ListingRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [counties, setCounties] = useState<County[]>([]);
+  const [subcounties, setSubcounties] = useState<SubCounty[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [browseMode, setBrowseMode] = useState<"category" | "location">("category");
+
 
   // Filter input states
   const [searchVal, setSearchVal] = useState(q || "");
@@ -78,23 +89,13 @@ function Browse() {
   );
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Fetch static categories and counties once
   useEffect(() => {
-    supabase
-      .from("categories")
-      .select("id,name,slug,parent_id")
-      .order("name")
-      .then(({ data }) => {
-        setCategories((data as Category[]) ?? []);
-      });
-    supabase
-      .from("counties")
-      .select("id,name")
-      .order("name")
-      .then(({ data }) => {
-        setCounties((data as County[]) ?? []);
-      });
+    supabase.from("categories").select("id,name,slug,parent_id").order("name").then(({ data }) => setCategories((data as Category[]) ?? []));
+    supabase.from("counties").select("id,name").order("name").then(({ data }) => setCounties((data as County[]) ?? []));
+    supabase.from("subcounties").select("id,county_id,name").order("name").then(({ data }) => setSubcounties((data as SubCounty[]) ?? []));
+    supabase.from("wards").select("id,county_id,subcounty_id,name").order("name").then(({ data }) => setWards((data as Ward[]) ?? []));
   }, []);
+
 
   // Sync state with URL updates
   useEffect(() => {
@@ -118,9 +119,11 @@ function Browse() {
           query = query.ilike("title", `%${q}%`);
         }
 
-        if (county) {
-          query = query.eq("county_id", county);
-        }
+        if (county) query = query.eq("county_id", county);
+        if (subcounty) query = query.eq("subcounty_id", subcounty);
+        if (ward) query = query.eq("ward_id", ward);
+        if (type) query = query.eq("listing_type", type as "sale" | "hire" | "service" | "donation");
+
 
         if (minPrice !== undefined) {
           query = query.gte("price", minPrice);
@@ -176,7 +179,7 @@ function Browse() {
     }, 200);
 
     return () => clearTimeout(handler);
-  }, [q, category, county, minPrice, maxPrice, categories]);
+  }, [q, category, county, subcounty, ward, type, minPrice, maxPrice, categories]);
 
   // Construct Category tree (Parent -> Children)
   const categoryTree = useMemo(() => {
@@ -274,6 +277,45 @@ function Browse() {
             className="w-full rounded-xl border border-border/70 bg-card pl-10 pr-4 py-2.5 outline-none focus:ring-2 focus:ring-primary shadow-sm text-xs md:text-sm"
           />
         </div>
+
+        {/* Type tabs */}
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {[
+            { v: "", l: "All" },
+            { v: "sale", l: "For Sale" },
+            { v: "hire", l: "For Hire" },
+            { v: "service", l: "Services" },
+            { v: "donation", l: "Donations" },
+          ].map((t) => (
+            <button
+              key={t.v}
+              onClick={() => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, type: t.v || undefined }) })}
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${(type || "") === t.v ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
+            >
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        {/* Browse mode toggle */}
+        <div className="mb-3 inline-flex rounded-lg bg-muted p-0.5 text-xs font-semibold">
+          <button onClick={() => setBrowseMode("category")} className={`px-3 py-1.5 rounded-md ${browseMode === "category" ? "bg-white shadow" : "text-muted-foreground"}`}>By Category</button>
+          <button onClick={() => setBrowseMode("location")} className={`px-3 py-1.5 rounded-md ${browseMode === "location" ? "bg-white shadow" : "text-muted-foreground"}`}>By Location</button>
+        </div>
+
+        {browseMode === "location" && (
+          <LocationDrilldown
+            counties={counties}
+            subcounties={subcounties}
+            wards={wards}
+            county={county}
+            subcounty={subcounty}
+            ward={ward}
+            onPick={(patch) => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, ...patch }) })}
+          />
+        )}
+
+
 
         {/* Filter chips */}
         {(q || category || county || minPrice !== undefined || maxPrice !== undefined) && (
@@ -632,3 +674,70 @@ function Browse() {
     </div>
   );
 }
+
+type LocPatch = { county?: number; subcounty?: number; ward?: number };
+type PrevSearch = {
+  q?: string; category?: string; type?: string;
+  county?: number; subcounty?: number; ward?: number;
+  minPrice?: number; maxPrice?: number;
+};
+
+function LocationDrilldown({
+  counties, subcounties, wards, county, subcounty, ward, onPick,
+}: {
+  counties: County[];
+  subcounties: SubCounty[];
+  wards: Ward[];
+  county?: number;
+  subcounty?: number;
+  ward?: number;
+  onPick: (patch: LocPatch) => void;
+}) {
+  return (
+    <div className="mb-4 bg-card rounded-xl ring-1 ring-black/5 p-3">
+      <div className="text-xs font-bold text-primary-dark mb-2 flex items-center gap-2">
+        <MapPin className="h-3.5 w-3.5" /> Drill down by location
+      </div>
+      {!county ? (
+        <div className="flex flex-wrap gap-1.5">
+          {counties.map((c) => (
+            <button key={c.id} onClick={() => onPick({ county: c.id, subcounty: undefined, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+              {c.name}
+            </button>
+          ))}
+        </div>
+      ) : !subcounty ? (
+        <>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← All counties</button>
+          <div className="text-xs font-semibold mb-1.5">{counties.find((c) => c.id === county)?.name} — pick a subcounty</div>
+          <div className="flex flex-wrap gap-1.5">
+            {subcounties.filter((s) => s.county_id === county).map((s) => (
+              <button key={s.id} onClick={() => onPick({ subcounty: s.id, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : !ward ? (
+        <>
+          <button onClick={() => onPick({ subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← Change subcounty</button>
+          <div className="text-xs font-semibold mb-1.5">Pick a ward</div>
+          <div className="flex flex-wrap gap-1.5">
+            {wards.filter((w) => w.subcounty_id === subcounty).map((w) => (
+              <button key={w.id} onClick={() => onPick({ ward: w.id })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {w.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-semibold">Filtered:</span>
+          <span>{wards.find((w) => w.id === ward)?.name}</span>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-primary underline">clear</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
