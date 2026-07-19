@@ -20,9 +20,13 @@ const searchSchema = z.object({
   q: z.string().optional().catch(""),
   category: z.string().optional().catch(""),
   county: z.number().optional().catch(undefined),
+  subcounty: z.number().optional().catch(undefined),
+  ward: z.number().optional().catch(undefined),
+  type: z.string().optional().catch(""),
   minPrice: z.number().optional().catch(undefined),
   maxPrice: z.number().optional().catch(undefined),
 });
+
 
 export const Route = createFileRoute("/browse")({
   validateSearch: searchSchema,
@@ -60,14 +64,21 @@ type County = {
   name: string;
 };
 
+type SubCounty = { id: number; county_id: number; name: string };
+type Ward = { id: number; county_id: number; subcounty_id: number | null; name: string };
+
 function Browse() {
-  const { q, category, county, minPrice, maxPrice } = Route.useSearch();
+  const { q, category, county, subcounty, ward, type, minPrice, maxPrice } = Route.useSearch();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ListingRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [counties, setCounties] = useState<County[]>([]);
+  const [subcounties, setSubcounties] = useState<SubCounty[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [browseMode, setBrowseMode] = useState<"category" | "location">("category");
+
 
   // Filter input states
   const [searchVal, setSearchVal] = useState(q || "");
@@ -78,23 +89,13 @@ function Browse() {
   );
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  // Fetch static categories and counties once
   useEffect(() => {
-    supabase
-      .from("categories")
-      .select("id,name,slug,parent_id")
-      .order("name")
-      .then(({ data }) => {
-        setCategories((data as Category[]) ?? []);
-      });
-    supabase
-      .from("counties")
-      .select("id,name")
-      .order("name")
-      .then(({ data }) => {
-        setCounties((data as County[]) ?? []);
-      });
+    supabase.from("categories").select("id,name,slug,parent_id").order("name").then(({ data }) => setCategories((data as Category[]) ?? []));
+    supabase.from("counties").select("id,name").order("name").then(({ data }) => setCounties((data as County[]) ?? []));
+    supabase.from("subcounties").select("id,county_id,name").order("name").then(({ data }) => setSubcounties((data as SubCounty[]) ?? []));
+    supabase.from("wards").select("id,county_id,subcounty_id,name").order("name").then(({ data }) => setWards((data as Ward[]) ?? []));
   }, []);
+
 
   // Sync state with URL updates
   useEffect(() => {
@@ -118,9 +119,11 @@ function Browse() {
           query = query.ilike("title", `%${q}%`);
         }
 
-        if (county) {
-          query = query.eq("county_id", county);
-        }
+        if (county) query = query.eq("county_id", county);
+        if (subcounty) query = query.eq("subcounty_id", subcounty);
+        if (ward) query = query.eq("ward_id", ward);
+        if (type) query = query.eq("listing_type", type as "sale" | "hire" | "service" | "donation");
+
 
         if (minPrice !== undefined) {
           query = query.gte("price", minPrice);
