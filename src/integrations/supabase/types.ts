@@ -71,10 +71,13 @@ export type Database = {
           duration_days: number;
           id: string;
           image_url: string | null;
+          listing_type: Database["public"]["Enums"]["listing_type"];
           price: number;
+          price_type: Database["public"]["Enums"]["price_type"];
           risk: Database["public"]["Enums"]["risk_level"];
           seller_id: string;
           status: Database["public"]["Enums"]["listing_status"];
+          sub_county_id: number | null;
           title: string;
           town: string | null;
           updated_at: string;
@@ -92,10 +95,13 @@ export type Database = {
           duration_days?: number;
           id?: string;
           image_url?: string | null;
+          listing_type?: Database["public"]["Enums"]["listing_type"];
           price: number;
+          price_type?: Database["public"]["Enums"]["price_type"];
           risk?: Database["public"]["Enums"]["risk_level"];
           seller_id: string;
           status?: Database["public"]["Enums"]["listing_status"];
+          sub_county_id?: number | null;
           title: string;
           town?: string | null;
           updated_at?: string;
@@ -113,10 +119,13 @@ export type Database = {
           duration_days?: number;
           id?: string;
           image_url?: string | null;
+          listing_type?: Database["public"]["Enums"]["listing_type"];
           price?: number;
+          price_type?: Database["public"]["Enums"]["price_type"];
           risk?: Database["public"]["Enums"]["risk_level"];
           seller_id?: string;
           status?: Database["public"]["Enums"]["listing_status"];
+          sub_county_id?: number | null;
           title?: string;
           town?: string | null;
           updated_at?: string;
@@ -135,6 +144,13 @@ export type Database = {
             columns: ["county_id"];
             isOneToOne: false;
             referencedRelation: "counties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "listings_sub_county_id_fkey";
+            columns: ["sub_county_id"];
+            isOneToOne: false;
+            referencedRelation: "sub_counties";
             referencedColumns: ["id"];
           },
           {
@@ -242,6 +258,7 @@ export type Database = {
           id: string;
           market_share: number;
           phone: string;
+          sub_county_id: number | null;
           town: string | null;
           updated_at: string;
           ward_id: number | null;
@@ -256,6 +273,7 @@ export type Database = {
           id: string;
           market_share?: number;
           phone?: string;
+          sub_county_id?: number | null;
           town?: string | null;
           updated_at?: string;
           ward_id?: number | null;
@@ -270,6 +288,7 @@ export type Database = {
           id?: string;
           market_share?: number;
           phone?: string;
+          sub_county_id?: number | null;
           town?: string | null;
           updated_at?: string;
           ward_id?: number | null;
@@ -283,10 +302,43 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "profiles_sub_county_id_fkey";
+            columns: ["sub_county_id"];
+            isOneToOne: false;
+            referencedRelation: "sub_counties";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "profiles_ward_id_fkey";
             columns: ["ward_id"];
             isOneToOne: false;
             referencedRelation: "wards";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      sub_counties: {
+        Row: {
+          county_id: number;
+          id: number;
+          name: string;
+        };
+        Insert: {
+          county_id: number;
+          id?: number;
+          name: string;
+        };
+        Update: {
+          county_id?: number;
+          id?: number;
+          name?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "sub_counties_county_id_fkey";
+            columns: ["county_id"];
+            isOneToOne: false;
+            referencedRelation: "counties";
             referencedColumns: ["id"];
           },
         ];
@@ -314,16 +366,19 @@ export type Database = {
           county_id: number;
           id: number;
           name: string;
+          sub_county_id: number | null;
         };
         Insert: {
           county_id: number;
           id?: number;
           name: string;
+          sub_county_id?: number | null;
         };
         Update: {
           county_id?: number;
           id?: number;
           name?: string;
+          sub_county_id?: number | null;
         };
         Relationships: [
           {
@@ -331,6 +386,13 @@ export type Database = {
             columns: ["county_id"];
             isOneToOne: false;
             referencedRelation: "counties";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "wards_sub_county_id_fkey";
+            columns: ["sub_county_id"];
+            isOneToOne: false;
+            referencedRelation: "sub_counties";
             referencedColumns: ["id"];
           },
         ];
@@ -362,7 +424,9 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user";
       listing_status: "active" | "sold" | "deleted";
+      listing_type: "sale" | "hire" | "service";
       offer_status: "pending" | "accepted" | "rejected";
+      price_type: "fixed" | "daily" | "hourly";
       risk_level: "low" | "medium" | "high";
     };
     CompositeTypes: {
@@ -487,7 +551,9 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user"],
       listing_status: ["active", "sold", "deleted"],
+      listing_type: ["sale", "hire", "service"],
       offer_status: ["pending", "accepted", "rejected"],
+      price_type: ["fixed", "daily", "hourly"],
       risk_level: ["low", "medium", "high"],
     },
   },

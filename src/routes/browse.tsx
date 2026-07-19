@@ -127,16 +127,18 @@ function Browse() {
       .from("sub_counties")
       .select("id,county_id,name")
       .order("name")
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setSubCounties(data as SubCounty[]);
-        } else {
+      .then(
+        ({ data }) => {
+          if (data && data.length > 0) {
+            setSubCounties(data as SubCounty[]);
+          } else {
+            setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+          }
+        },
+        () => {
           setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
         }
-      })
-      .catch(() => {
-        setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
-      });
+      );
   }, []);
 
   // Sync state with URL updates

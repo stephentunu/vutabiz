@@ -69,45 +69,49 @@ function SellPage() {
       .from("sub_counties")
       .select("id,county_id,name")
       .order("name")
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setSubCounties(data as SubCounty[]);
-        } else {
+      .then(
+        ({ data }) => {
+          if (data && data.length > 0) {
+            setSubCounties(data as SubCounty[]);
+          } else {
+            setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+          }
+        },
+        () => {
           setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
         }
-      })
-      .catch(() => {
-        setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
-      });
+      );
     supabase
       .from("wards")
       .select("id,county_id,sub_county_id,name")
       .order("name")
-      .then(({ data }) => {
-        const dbWards = (data as Ward[]) ?? [];
-        const allWards = [...dbWards];
-        STATIC_SUB_COUNTIES.forEach((sc) => {
-          const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
-          if (!hasWard) {
-            allWards.push({
-              id: 10000 + sc.id,
-              county_id: sc.county_id,
-              sub_county_id: sc.id,
-              name: sc.name,
-            });
-          }
-        });
-        setWards(allWards);
-      })
-      .catch(() => {
-        const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
-          id: 10000 + sc.id,
-          county_id: sc.county_id,
-          sub_county_id: sc.id,
-          name: sc.name,
-        }));
-        setWards(fallbackWards);
-      });
+      .then(
+        ({ data }) => {
+          const dbWards = (data as Ward[]) ?? [];
+          const allWards = [...dbWards];
+          STATIC_SUB_COUNTIES.forEach((sc) => {
+            const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
+            if (!hasWard) {
+              allWards.push({
+                id: 10000 + sc.id,
+                county_id: sc.county_id,
+                sub_county_id: sc.id,
+                name: sc.name,
+              });
+            }
+          });
+          setWards(allWards);
+        },
+        () => {
+          const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
+            id: 10000 + sc.id,
+            county_id: sc.county_id,
+            sub_county_id: sc.id,
+            name: sc.name,
+          }));
+          setWards(fallbackWards);
+        }
+      );
 
     // Pre-fill location from profile
     supabase.auth.getUser().then(({ data }) => {
