@@ -59,7 +59,7 @@ function ListingPage() {
   async function load() {
     const { data: l } = await supabase
       .from("listings")
-      .select("id,title,description,price,image_url,seller_id,status,county_id,town")
+      .select("id,title,description,price,image_url,seller_id,status,county_id,town,listing_type,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description")
       .eq("id", id)
       .maybeSingle();
     setListing(l as Listing | null);
