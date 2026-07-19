@@ -37,7 +37,7 @@ export const Route = createFileRoute("/browse")({
   component: Browse,
   head: () => ({
     meta: [
-      { title: "Browse Marketplace – Vutabiz" },
+      { title: "Browse Marketplace – Sokonyumbani" },
       {
         name: "description",
         content: "Browse home appliances, building materials, and services for sale across Kenya.",

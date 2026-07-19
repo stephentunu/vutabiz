@@ -427,7 +427,7 @@ function Home() {
 
       <section className="mx-auto max-w-7xl w-full px-4 py-8">
         <h2 className="text-center text-lg font-extrabold uppercase text-primary-dark tracking-tight">
-          Why Choose Vutabiz?
+          Why Choose Sokonyumbani?
         </h2>
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {WHY.map((w) => (

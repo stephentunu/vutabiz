@@ -8,10 +8,10 @@ export const Route = createFileRoute("/store/$userId")({
   component: StorePage,
   head: ({ params }) => ({
     meta: [
-      { title: `Vutabiz Store · ${params.userId.slice(0, 8)}` },
-      { name: "description", content: "Shop directly from this Vutabiz seller." },
-      { property: "og:title", content: "Vutabiz Seller Store" },
-      { property: "og:description", content: "Buy locally on Vutabiz — Kenya's marketplace." },
+      { title: `Sokonyumbani Store · ${params.userId.slice(0, 8)}` },
+      { name: "description", content: "Shop directly from this Sokonyumbani seller." },
+      { property: "og:title", content: "Sokonyumbani Seller Store" },
+      { property: "og:description", content: "Buy locally on Sokonyumbani — Kenya's marketplace." },
     ],
   }),
 });
@@ -44,7 +44,7 @@ function StorePage() {
       <main className="flex-1 bg-background py-10">
         <div className="mx-auto max-w-6xl px-4">
           <div className="rounded-2xl bg-gradient-to-br from-primary to-primary-dark text-white p-8 shadow-lg">
-            <div className="text-xs uppercase tracking-widest text-white/70">Vutabiz Store</div>
+            <div className="text-xs uppercase tracking-widest text-white/70">Sokonyumbani Store</div>
             <h1 className="text-3xl md:text-4xl font-extrabold mt-1">
               {profile?.full_name ?? "Seller"}
             </h1>

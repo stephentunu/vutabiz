@@ -11,10 +11,10 @@ export const Route = createFileRoute("/listing/$id")({
   component: ListingPage,
   head: ({ params }) => ({
     meta: [
-      { title: `Listing on Vutabiz` },
+      { title: `Listing on Sokonyumbani` },
       {
         name: "description",
-        content: `View listing ${params.id} on Vutabiz — Kenya's local marketplace.`,
+        content: `View listing ${params.id} on Sokonyumbani — Kenya's local marketplace.`,
       },
     ],
   }),

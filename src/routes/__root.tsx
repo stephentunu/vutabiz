@@ -77,13 +77,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Vutabiz — Your Trusted Local Kenyan Marketplace" },
+      { title: "Sokonyumbani — Your Trusted Local Kenyan Marketplace" },
       {
         name: "description",
         content:
           "Buy & sell home appliances, furniture, construction materials and farm produce locally across Kenya. Verified sellers, safe transactions.",
       },
-      { property: "og:title", content: "Vutabiz — Your Trusted Local Kenyan Marketplace" },
+      { property: "og:title", content: "Sokonyumbani — Your Trusted Local Kenyan Marketplace" },
       {
         property: "og:description",
         content:

@@ -14,8 +14,8 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
   head: () => ({
     meta: [
-      { title: "Sign In / Register — Vutabiz" },
-      { name: "description", content: "Sign in or create your free Vutabiz account to buy and sell locally in Kenya." },
+      { title: "Sign In / Register — Sokonyumbani" },
+      { name: "description", content: "Sign in or create your free Sokonyumbani account to buy and sell locally in Kenya." },
     ],
   }),
 });
@@ -199,7 +199,7 @@ function AuthPage() {
         options: {
           emailRedirectTo: `${window.location.origin}/admin`,
           data: {
-            full_name: "Vutabiz Admin",
+            full_name: "Sokonyumbani Admin",
             phone: "0700000000",
             county_id: "47",
             ward_id: "",
@@ -234,7 +234,7 @@ function AuthPage() {
         <div className="w-full max-w-lg bg-card rounded-xl shadow-lg border border-border/40 p-7 z-10">
           <div className="text-center mb-5">
             <h1 className="text-xl font-extrabold text-primary-dark tracking-tight">
-              {mode === "signin" ? "Welcome back" : "Create your Vutabiz account"}
+              {mode === "signin" ? "Welcome back" : "Create your Sokonyumbani account"}
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
               {mode === "signin"
@@ -410,7 +410,7 @@ function AuthPage() {
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</>
               ) : mode === "signin" ? (
-                "Sign In to Vutabiz"
+                "Sign In to Sokonyumbani"
               ) : (
                 "Create Account"
               )}

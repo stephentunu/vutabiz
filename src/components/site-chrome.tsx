@@ -38,7 +38,7 @@ function Logo({ light = false }: { light?: boolean }) {
         <div
           className={`font-extrabold tracking-tight text-lg ${light ? "text-white" : "text-foreground"}`}
         >
-          Vutabiz
+          Sokonyumbani
         </div>
         <div
           className={`text-[10px] uppercase tracking-[0.18em] ${light ? "text-white/70" : "text-muted-foreground"}`}
@@ -234,7 +234,7 @@ export function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10 py-4 text-center text-xs text-white/70">
-        © {new Date().getFullYear()} Vutabiz. All rights reserved. · Built for Kenya 🇰🇪
+        © {new Date().getFullYear()} Sokonyumbani. All rights reserved. · Built for Kenya 🇰🇪
       </div>
     </footer>
   );

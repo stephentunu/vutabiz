@@ -88,7 +88,7 @@ function ThankYou() {
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <a
-                    href={`https://wa.me/?text=${encodeURIComponent(`Check out my items on Vutabiz: ${shareUrl}`)}`}
+                    href={`https://wa.me/?text=${encodeURIComponent(`Check out my items on Sokonyumbani: ${shareUrl}`)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] text-white py-2.5 text-xs font-bold transition shadow-sm"
@@ -104,7 +104,7 @@ function ThankYou() {
                     <Facebook className="h-4 w-4" /> Facebook
                   </a>
                   <a
-                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out my storefront on Vutabiz!`)}&url=${encodeURIComponent(shareUrl)}`}
+                    href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Check out my storefront on Sokonyumbani!`)}&url=${encodeURIComponent(shareUrl)}`}
                     target="_blank"
                     rel="noreferrer"
                     className="flex items-center justify-center gap-2 rounded-xl bg-[#1DA1F2] hover:bg-[#1a8cd8] text-white py-2.5 text-xs font-bold transition shadow-sm"

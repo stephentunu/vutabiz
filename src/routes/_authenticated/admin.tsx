@@ -25,8 +25,8 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
   head: () => ({
     meta: [
-      { title: "Admin Dashboard — Vutabiz" },
-      { name: "description", content: "Vutabiz site-wide admin control panel." },
+      { title: "Admin Dashboard — Sokonyumbani" },
+      { name: "description", content: "Sokonyumbani site-wide admin control panel." },
     ],
   }),
 });
@@ -166,7 +166,7 @@ function AdminPage() {
                 <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Admin Control Panel</span>
               </div>
               <h1 className="text-xl font-extrabold text-primary-dark tracking-tight">Site Dashboard</h1>
-              <p className="text-xs text-muted-foreground mt-0.5">Real-time activity across all of Vutabiz Kenya.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Real-time activity across all of Sokonyumbani Kenya.</p>
             </div>
             <button
               onClick={load}
