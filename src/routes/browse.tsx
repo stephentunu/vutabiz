@@ -12,7 +12,6 @@ import {
   Coins,
   Check,
   X,
-  ChevronDown,
   ShoppingBag,
   Wrench,
   Users,
@@ -24,10 +23,14 @@ const searchSchema = z.object({
   category: z.string().optional().catch(""),
   county: z.number().optional().catch(undefined),
   sub_county: z.number().optional().catch(undefined),
-  listing_type: z.enum(["sale", "hire", "service"]).optional().catch(undefined),
+  subcounty: z.number().optional().catch(undefined),
+  ward: z.number().optional().catch(undefined),
+  listing_type: z.enum(["sale", "hire", "service", "donation"]).optional().catch(undefined),
+  type: z.string().optional().catch(""),
   minPrice: z.number().optional().catch(undefined),
   maxPrice: z.number().optional().catch(undefined),
 });
+
 
 export const Route = createFileRoute("/browse")({
   validateSearch: searchSchema,
@@ -50,7 +53,7 @@ type ListingRow = {
   image_url: string | null;
   town: string | null;
   county_id: number | null;
-  listing_type: "sale" | "hire" | "service" | null;
+  listing_type: "sale" | "hire" | "service" | "donation" | null;
   price_type: "fixed" | "daily" | "hourly" | null;
   created_at: string;
 };
@@ -73,10 +76,13 @@ type SubCounty = {
   name: string;
 };
 
+type Ward = { id: number; county_id: number; sub_county_id: number | null; name: string };
+
 const LISTING_TYPE_LABELS: Record<string, { label: string; icon: typeof ShoppingBag; color: string }> = {
   sale: { label: "For Sale", icon: ShoppingBag, color: "bg-primary/10 text-primary-dark" },
   hire: { label: "For Hire", icon: Wrench, color: "bg-amber-500/10 text-amber-700" },
   service: { label: "Service", icon: Users, color: "bg-emerald-500/10 text-emerald-700" },
+  donation: { label: "Donation", icon: ShoppingBag, color: "bg-rose-500/10 text-rose-700" },
 };
 
 const PRICE_TYPE_SUFFIX: Record<string, string> = {
@@ -85,15 +91,23 @@ const PRICE_TYPE_SUFFIX: Record<string, string> = {
   hourly: "/hr",
 };
 
+type PrevSearch = {
+  q?: string; category?: string; type?: string; listing_type?: "sale" | "hire" | "service" | "donation";
+  county?: number; sub_county?: number; subcounty?: number; ward?: number;
+  minPrice?: number; maxPrice?: number;
+};
+
 function Browse() {
-  const { q, category, county, sub_county, listing_type, minPrice, maxPrice } = Route.useSearch();
+  const { q, category, county, sub_county, subcounty, ward, listing_type, type, minPrice, maxPrice } = Route.useSearch();
   const navigate = useNavigate();
 
   const [items, setItems] = useState<ListingRow[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [counties, setCounties] = useState<County[]>([]);
   const [subCounties, setSubCounties] = useState<SubCounty[]>([]);
+  const [wards, setWards] = useState<Ward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [browseMode, setBrowseMode] = useState<"category" | "location">("category");
 
   // Filter input states
   const [searchVal, setSearchVal] = useState(q || "");
@@ -139,7 +153,13 @@ function Browse() {
           setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
         }
       );
+    supabase
+      .from("wards")
+      .select("id,county_id,sub_county_id,name")
+      .order("name")
+      .then(({ data }) => setWards((data as Ward[]) ?? []));
   }, []);
+
 
   // Sync state with URL updates
   useEffect(() => {
@@ -148,7 +168,7 @@ function Browse() {
     setMaxPriceVal(maxPrice !== undefined ? String(maxPrice) : "");
     setSelectedCounty(county !== undefined ? String(county) : "");
     setSelectedSubCounty(sub_county !== undefined ? String(sub_county) : "");
-  }, [q, category, county, sub_county, listing_type, minPrice, maxPrice]);
+  }, [q, category, county, sub_county, subcounty, ward, listing_type, type, minPrice, maxPrice]);
 
   // Main search query execution
   useEffect(() => {
@@ -164,16 +184,14 @@ function Browse() {
           query = query.ilike("title", `%${q}%`);
         }
 
-        if (county) {
-          query = query.eq("county_id", county);
-        }
+        if (county) query = query.eq("county_id", county);
+        if (sub_county) query = query.eq("sub_county_id", sub_county);
+        if (subcounty) query = query.eq("sub_county_id", subcounty);
+        if (ward) query = query.eq("ward_id", ward);
 
-        if (sub_county) {
-          query = query.eq("sub_county_id", sub_county);
-        }
-
-        if (listing_type) {
-          query = query.eq("listing_type", listing_type);
+        const activeType = type || listing_type;
+        if (activeType) {
+          query = query.eq("listing_type", activeType as "sale" | "hire" | "service" | "donation");
         }
 
         if (minPrice !== undefined) {
@@ -230,7 +248,7 @@ function Browse() {
     }, 200);
 
     return () => clearTimeout(handler);
-  }, [q, category, county, sub_county, listing_type, minPrice, maxPrice, categories]);
+  }, [q, category, county, sub_county, subcounty, ward, listing_type, type, minPrice, maxPrice, categories]);
 
   // Construct Category tree (Parent -> Children)
   const categoryTree = useMemo(() => {
@@ -253,7 +271,7 @@ function Browse() {
     category?: string;
     county?: number;
     sub_county?: number;
-    listing_type?: "sale" | "hire" | "service";
+    listing_type?: "sale" | "hire" | "service" | "donation";
     minPrice?: number;
     maxPrice?: number;
   }) => {
@@ -310,6 +328,7 @@ function Browse() {
   const activeCountyName = counties.find((co) => co.id === county)?.name;
   const activeSubCountyName = subCounties.find((sc) => sc.id === sub_county)?.name;
   const activeCategoryName = categories.find((c) => c.slug === category)?.name;
+  const activeType = type || listing_type;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -331,41 +350,6 @@ function Browse() {
           </button>
         </div>
 
-        {/* Listing type quick tabs */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {(["", "sale", "hire", "service"] as const).map((type) => {
-            const isActive = (listing_type ?? "") === type;
-            const info = type ? LISTING_TYPE_LABELS[type] : null;
-            return (
-              <button
-                key={type || "all"}
-                onClick={() =>
-                  navigate({
-                    to: "/browse",
-                    search: {
-                      q: q || undefined,
-                      category: category || undefined,
-                      county: county || undefined,
-                      sub_county: sub_county || undefined,
-                      listing_type: (type as "sale" | "hire" | "service") || undefined,
-                      minPrice: minPrice || undefined,
-                      maxPrice: maxPrice || undefined,
-                    },
-                  })
-                }
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-bold transition cursor-pointer border ${
-                  isActive
-                    ? "bg-primary text-white border-primary shadow"
-                    : "bg-card text-muted-foreground border-border hover:border-primary/40 hover:text-foreground"
-                }`}
-              >
-                {info && <info.icon className="h-3 w-3" />}
-                {type ? info?.label : "All"}
-              </button>
-            );
-          })}
-        </div>
-
         {/* Search header bar */}
         <div className="mb-4 relative max-w-xl">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -380,12 +364,50 @@ function Browse() {
           />
         </div>
 
+        {/* Type tabs */}
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {[
+            { v: "", l: "All" },
+            { v: "sale", l: "For Sale" },
+            { v: "hire", l: "For Hire" },
+            { v: "service", l: "Services" },
+            { v: "donation", l: "Donations" },
+          ].map((t) => (
+            <button
+              key={t.v}
+              onClick={() => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, listing_type: (t.v as "sale" | "hire" | "service" | "donation") || undefined, type: undefined }) })}
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${(activeType || "") === t.v ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
+            >
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        {/* Browse mode toggle */}
+        <div className="mb-3 inline-flex rounded-lg bg-muted p-0.5 text-xs font-semibold">
+          <button onClick={() => setBrowseMode("category")} className={`px-3 py-1.5 rounded-md ${browseMode === "category" ? "bg-white shadow" : "text-muted-foreground"}`}>By Category</button>
+          <button onClick={() => setBrowseMode("location")} className={`px-3 py-1.5 rounded-md ${browseMode === "location" ? "bg-white shadow" : "text-muted-foreground"}`}>By Location</button>
+        </div>
+
+        {browseMode === "location" && (
+          <LocationDrilldown
+            counties={counties}
+            subcounties={subCounties}
+            wards={wards}
+            county={county}
+            subcounty={subcounty ?? sub_county}
+            ward={ward}
+            onPick={(patch) => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, ...patch }) })}
+          />
+        )}
+
         {/* Filter chips */}
         {(q ||
           category ||
           county ||
           sub_county ||
           listing_type ||
+          type ||
           minPrice !== undefined ||
           maxPrice !== undefined) && (
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
@@ -398,9 +420,9 @@ function Browse() {
                 <X className="h-3 w-3 cursor-pointer" onClick={() => applyFilters({ q: "" })} />
               </span>
             )}
-            {listing_type && (
+            {activeType && (
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary-dark px-2.5 py-1 rounded-full">
-                {LISTING_TYPE_LABELS[listing_type]?.label}
+                {LISTING_TYPE_LABELS[activeType]?.label}
                 <X
                   className="h-3 w-3 cursor-pointer"
                   onClick={() =>
@@ -665,7 +687,7 @@ function Browse() {
                       </div>
                       <div className="px-2.5 pb-2.5 pt-0 flex items-center justify-between border-t border-border/40 mt-0.5">
                         <div className="text-primary-dark font-extrabold text-xs md:text-sm">
-                          KSh {Number(it.price).toLocaleString()}
+                          {it.listing_type === "donation" ? "Free" : `KSh ${Number(it.price).toLocaleString()}`}
                           {priceSuffix && (
                             <span className="text-[10px] font-semibold text-muted-foreground ml-0.5">
                               {priceSuffix}
@@ -729,17 +751,17 @@ function Browse() {
                   Listing Type
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
-                  {(["sale", "hire", "service"] as const).map((type) => {
-                    const info = LISTING_TYPE_LABELS[type];
+                  {(["sale", "hire", "service", "donation"] as const).map((t) => {
+                    const info = LISTING_TYPE_LABELS[t];
                     return (
                       <button
-                        key={type}
+                        key={t}
                         onClick={() => {
-                          applyFilters({ listing_type: type });
+                          applyFilters({ listing_type: t });
                           setShowMobileFilters(false);
                         }}
                         className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition cursor-pointer ${
-                          listing_type === type
+                          (activeType) === t
                             ? "border-primary bg-primary/10 text-primary-dark"
                             : "border-border text-muted-foreground"
                         }`}
@@ -877,6 +899,67 @@ function Browse() {
       )}
 
       <Footer />
+    </div>
+  );
+}
+
+type LocPatch = { county?: number; subcounty?: number; ward?: number };
+
+function LocationDrilldown({
+  counties, subcounties, wards, county, subcounty, ward, onPick,
+}: {
+  counties: County[];
+  subcounties: SubCounty[];
+  wards: Ward[];
+  county?: number;
+  subcounty?: number;
+  ward?: number;
+  onPick: (patch: LocPatch) => void;
+}) {
+  return (
+    <div className="mb-4 bg-card rounded-xl ring-1 ring-black/5 p-3">
+      <div className="text-xs font-bold text-primary-dark mb-2 flex items-center gap-2">
+        <MapPin className="h-3.5 w-3.5" /> Drill down by location
+      </div>
+      {!county ? (
+        <div className="flex flex-wrap gap-1.5">
+          {counties.map((c) => (
+            <button key={c.id} onClick={() => onPick({ county: c.id, subcounty: undefined, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+              {c.name}
+            </button>
+          ))}
+        </div>
+      ) : !subcounty ? (
+        <>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← All counties</button>
+          <div className="text-xs font-semibold mb-1.5">{counties.find((c) => c.id === county)?.name} — pick a subcounty</div>
+          <div className="flex flex-wrap gap-1.5">
+            {subcounties.filter((s) => s.county_id === county).map((s) => (
+              <button key={s.id} onClick={() => onPick({ subcounty: s.id, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : !ward ? (
+        <>
+          <button onClick={() => onPick({ subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← Change subcounty</button>
+          <div className="text-xs font-semibold mb-1.5">Pick a ward</div>
+          <div className="flex flex-wrap gap-1.5">
+            {wards.filter((w) => w.sub_county_id === subcounty).map((w) => (
+              <button key={w.id} onClick={() => onPick({ ward: w.id })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {w.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-semibold">Filtered:</span>
+          <span>{wards.find((w) => w.id === ward)?.name}</span>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-primary underline">clear</button>
+        </div>
+      )}
     </div>
   );
 }

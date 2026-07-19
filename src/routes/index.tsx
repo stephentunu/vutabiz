@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { siteStats } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import {
   Search,
@@ -11,6 +13,9 @@ import {
   Phone,
   Users,
   Wrench,
+  Package,
+  HeartHandshake,
+  TrendingUp,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
@@ -18,6 +23,7 @@ import catHome from "@/assets/cat-home.jpg";
 import catFurniture from "@/assets/cat-furniture.jpg";
 import catConstruction from "@/assets/cat-construction.jpg";
 import catFarm from "@/assets/cat-farm.jpg";
+
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -64,45 +70,40 @@ function KenteBar() {
   );
 }
 
+const ADVERTS = [
+  { t: "M-Pesa Paybill 247247", s: "Pay for ads instantly & securely", c: "from-green-600 to-emerald-800" },
+  { t: "Solar Kits from KSh 4,999", s: "Power your home off-grid — verified sellers", c: "from-amber-500 to-orange-700" },
+  { t: "Free ads for donations", s: "Give excess items to needy families", c: "from-rose-500 to-red-700" },
+  { t: "Skilled Fundis Near You", s: "Masons, plumbers, tailors — hire locally", c: "from-blue-600 to-indigo-800" },
+  { t: "Building Materials Delivered", s: "Iron sheets, cement, sand across Kenya", c: "from-stone-600 to-neutral-800" },
+  { t: "List for hire — earn daily", s: "Rent out tools, machinery, PA systems", c: "from-primary to-primary-dark" },
+];
+
 function Home() {
   const navigate = useNavigate();
+  const statsFn = useServerFn(siteStats);
   const [categories, setCategories] = useState<{ id: number; name: string; slug: string }[]>([]);
   const [counties, setCounties] = useState<{ id: number; name: string }[]>([]);
   const [trending, setTrending] = useState<Listing[]>([]);
+  const [stats, setStats] = useState({ users: 0, activeListings: 0, itemsSold: 0, donations: 0 });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedCounty, setSelectedCounty] = useState("");
 
   useEffect(() => {
-    // Fetch main categories and counties
-    supabase
-      .from("categories")
-      .select("id,name,slug")
-      .is("parent_id", null)
-      .order("name")
-      .then(({ data }) => {
-        setCategories(data ?? []);
-      });
-    supabase
-      .from("counties")
-      .select("id,name")
-      .order("name")
-      .then(({ data }) => {
-        setCounties(data ?? []);
-      });
-
-    // Fetch top trending (active) items
+    supabase.from("categories").select("id,name,slug").is("parent_id", null).order("name").then(({ data }) => setCategories(data ?? []));
+    supabase.from("counties").select("id,name").order("name").then(({ data }) => setCounties(data ?? []));
     supabase
       .from("listings")
       .select("id,title,price,image_url,status,category_id,town")
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(6)
-      .then(({ data }) => {
-        setTrending((data as Listing[]) ?? []);
-      });
-  }, []);
+      .then(({ data }) => setTrending((data as Listing[]) ?? []));
+    statsFn().then(setStats).catch(() => {});
+  }, [statsFn]);
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,6 +231,22 @@ function Home() {
           </div>
         </div>
       </section>
+
+      {/* ANIMATED ADVERT MARQUEE */}
+      <section aria-label="Promotions" className="bg-primary-dark/95 border-y border-primary-dark overflow-hidden">
+        <div className="relative">
+          <div className="flex animate-marquee whitespace-nowrap py-2.5">
+            {[...ADVERTS, ...ADVERTS].map((a, i) => (
+              <div key={i} className={`mx-2 inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r ${a.c} text-white px-4 py-1.5 shadow-md ring-1 ring-white/10`}>
+                <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                <span className="font-bold text-xs uppercase tracking-wide">{a.t}</span>
+                <span className="text-[11px] text-white/85">{a.s}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
 
       {/* CATEGORIES */}
       <section className="mx-auto max-w-7xl w-full px-4 pt-6 pb-3">
@@ -384,7 +401,30 @@ function Home() {
         )}
       </section>
 
+      {/* STATS */}
+      <section className="bg-gradient-to-br from-primary-dark to-primary text-white py-8">
+        <div className="mx-auto max-w-7xl px-4">
+          <h2 className="text-center text-lg font-extrabold uppercase tracking-tight">Trusted Across Kenya</h2>
+          <p className="mt-1 text-center text-xs text-white/80">Real numbers, real impact — updated live</p>
+          <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { icon: Users, label: "Kenyans Served", value: stats.users },
+              { icon: Package, label: "Active Listings", value: stats.activeListings },
+              { icon: TrendingUp, label: "Items Sold", value: stats.itemsSold },
+              { icon: HeartHandshake, label: "Donations Posted", value: stats.donations },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl bg-white/10 backdrop-blur ring-1 ring-white/15 p-4 text-center">
+                <s.icon className="h-5 w-5 mx-auto mb-1.5 text-accent" />
+                <div className="text-2xl md:text-3xl font-extrabold">{s.value.toLocaleString()}+</div>
+                <div className="text-[10px] uppercase tracking-wider text-white/85 mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* WHY CHOOSE */}
+
       <section className="mx-auto max-w-7xl w-full px-4 py-8">
         <h2 className="text-center text-lg font-extrabold uppercase text-primary-dark tracking-tight">
           Why Choose Vutabiz?

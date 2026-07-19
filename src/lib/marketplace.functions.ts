@@ -15,9 +15,18 @@ const listingInput = z.object({
   distance_km: z.number().min(0).default(0),
   risk: z.enum(["low", "medium", "high"]).default("low"),
   duration_days: z.number().int().min(1).max(60).default(7),
-  listing_type: z.enum(["sale", "hire", "service"]).default("sale"),
-  price_type: z.enum(["fixed", "daily", "hourly"]).default("fixed"),
+  listing_type: z.enum(["sale", "hire", "service", "donation"]).default("sale"),
+  contact_phone: z.string().max(20).optional().nullable(),
+  offers_delivery: z.boolean().default(false),
+  transport_means: z.string().max(60).optional().nullable(),
+  payment_methods: z.array(z.string().max(30)).default([]),
+  job_title: z.string().max(80).optional().nullable(),
+  education_level: z.enum(["none","kcpe","kcse","certificate","diploma","degree"]).optional().nullable(),
+  languages: z.array(z.string().max(30)).default([]),
+  experience_years: z.number().int().min(0).max(80).optional().nullable(),
+  self_description: z.string().max(1000).optional().nullable(),
 });
+
 
 export const computeAdFee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -271,4 +280,40 @@ export const adminStats = createServerFn({ method: "GET" })
       }>,
     };
   });
+
+// Public site statistics for the homepage. No auth required.
+export const siteStats = createServerFn({ method: "GET" }).handler(async () => {
+  const { createClient } = await import("@supabase/supabase-js");
+  const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
+  const url = process.env.SUPABASE_URL!;
+  const sb = createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
+    global: {
+      fetch: (input, init) => {
+        const h = new Headers(init?.headers);
+        if (key.startsWith("sb_") && h.get("Authorization") === `Bearer ${key}`)
+          h.delete("Authorization");
+        h.set("apikey", key);
+        return fetch(input, { ...init, headers: h });
+      },
+    },
+  });
+  const [{ count: users }, { count: active }, { count: sold }, { count: donations }] =
+    await Promise.all([
+      sb.from("profiles").select("*", { count: "exact", head: true }),
+      sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "active"),
+      sb.from("listings").select("*", { count: "exact", head: true }).eq("status", "sold"),
+      sb
+        .from("listings")
+        .select("*", { count: "exact", head: true })
+        .eq("listing_type", "donation"),
+    ]);
+  return {
+    users: users ?? 0,
+    activeListings: active ?? 0,
+    itemsSold: sold ?? 0,
+    donations: donations ?? 0,
+  };
+});
+
 
