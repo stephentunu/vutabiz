@@ -674,3 +674,70 @@ function Browse() {
     </div>
   );
 }
+
+type LocPatch = { county?: number; subcounty?: number; ward?: number };
+type PrevSearch = {
+  q?: string; category?: string; type?: string;
+  county?: number; subcounty?: number; ward?: number;
+  minPrice?: number; maxPrice?: number;
+};
+
+function LocationDrilldown({
+  counties, subcounties, wards, county, subcounty, ward, onPick,
+}: {
+  counties: County[];
+  subcounties: SubCounty[];
+  wards: Ward[];
+  county?: number;
+  subcounty?: number;
+  ward?: number;
+  onPick: (patch: LocPatch) => void;
+}) {
+  return (
+    <div className="mb-4 bg-card rounded-xl ring-1 ring-black/5 p-3">
+      <div className="text-xs font-bold text-primary-dark mb-2 flex items-center gap-2">
+        <MapPin className="h-3.5 w-3.5" /> Drill down by location
+      </div>
+      {!county ? (
+        <div className="flex flex-wrap gap-1.5">
+          {counties.map((c) => (
+            <button key={c.id} onClick={() => onPick({ county: c.id, subcounty: undefined, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+              {c.name}
+            </button>
+          ))}
+        </div>
+      ) : !subcounty ? (
+        <>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← All counties</button>
+          <div className="text-xs font-semibold mb-1.5">{counties.find((c) => c.id === county)?.name} — pick a subcounty</div>
+          <div className="flex flex-wrap gap-1.5">
+            {subcounties.filter((s) => s.county_id === county).map((s) => (
+              <button key={s.id} onClick={() => onPick({ subcounty: s.id, ward: undefined })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {s.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : !ward ? (
+        <>
+          <button onClick={() => onPick({ subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← Change subcounty</button>
+          <div className="text-xs font-semibold mb-1.5">Pick a ward</div>
+          <div className="flex flex-wrap gap-1.5">
+            {wards.filter((w) => w.subcounty_id === subcounty).map((w) => (
+              <button key={w.id} onClick={() => onPick({ ward: w.id })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
+                {w.name}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="font-semibold">Filtered:</span>
+          <span>{wards.find((w) => w.id === ward)?.name}</span>
+          <button onClick={() => onPick({ county: undefined, subcounty: undefined, ward: undefined })} className="text-primary underline">clear</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
