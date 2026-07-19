@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/site-chrome";
+import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 import {
   Search,
   MapPin,
@@ -127,7 +128,14 @@ function Browse() {
       .select("id,county_id,name")
       .order("name")
       .then(({ data }) => {
-        setSubCounties((data as SubCounty[]) ?? []);
+        if (data && data.length > 0) {
+          setSubCounties(data as SubCounty[]);
+        } else {
+          setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+        }
+      })
+      .catch(() => {
+        setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
       });
   }, []);
 

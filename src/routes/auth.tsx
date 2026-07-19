@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Header, Footer } from "@/components/site-chrome";
 import { Loader2, MapPin, User, Mail, Lock, Phone, ShieldAlert, AlertCircle } from "lucide-react";
+import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 
 const search = z.object({ next: z.string().optional() });
 
@@ -58,12 +59,45 @@ function AuthPage() {
       .from("sub_counties")
       .select("id,county_id,name")
       .order("name")
-      .then(({ data }) => setSubCounties((data as SubCounty[]) ?? []));
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setSubCounties(data as SubCounty[]);
+        } else {
+          setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+        }
+      })
+      .catch(() => {
+        setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+      });
     supabase
       .from("wards")
       .select("id,county_id,sub_county_id,name")
       .order("name")
-      .then(({ data }) => setWards((data as Ward[]) ?? []));
+      .then(({ data }) => {
+        const dbWards = (data as Ward[]) ?? [];
+        const allWards = [...dbWards];
+        STATIC_SUB_COUNTIES.forEach((sc) => {
+          const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
+          if (!hasWard) {
+            allWards.push({
+              id: 10000 + sc.id,
+              county_id: sc.county_id,
+              sub_county_id: sc.id,
+              name: sc.name,
+            });
+          }
+        });
+        setWards(allWards);
+      })
+      .catch(() => {
+        const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
+          id: 10000 + sc.id,
+          county_id: sc.county_id,
+          sub_county_id: sc.id,
+          name: sc.name,
+        }));
+        setWards(fallbackWards);
+      });
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         const userEmail = data.session.user?.email || "";

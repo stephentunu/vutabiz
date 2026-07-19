@@ -6,6 +6,7 @@ import { computeAdFee, createListing, payListingAd } from "@/lib/marketplace.fun
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ShoppingBag, Wrench, Users } from "lucide-react";
+import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
@@ -68,12 +69,45 @@ function SellPage() {
       .from("sub_counties")
       .select("id,county_id,name")
       .order("name")
-      .then(({ data }) => setSubCounties((data as SubCounty[]) ?? []));
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setSubCounties(data as SubCounty[]);
+        } else {
+          setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+        }
+      })
+      .catch(() => {
+        setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
+      });
     supabase
       .from("wards")
       .select("id,county_id,sub_county_id,name")
       .order("name")
-      .then(({ data }) => setWards((data as Ward[]) ?? []));
+      .then(({ data }) => {
+        const dbWards = (data as Ward[]) ?? [];
+        const allWards = [...dbWards];
+        STATIC_SUB_COUNTIES.forEach((sc) => {
+          const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
+          if (!hasWard) {
+            allWards.push({
+              id: 10000 + sc.id,
+              county_id: sc.county_id,
+              sub_county_id: sc.id,
+              name: sc.name,
+            });
+          }
+        });
+        setWards(allWards);
+      })
+      .catch(() => {
+        const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
+          id: 10000 + sc.id,
+          county_id: sc.county_id,
+          sub_county_id: sc.id,
+          name: sc.name,
+        }));
+        setWards(fallbackWards);
+      });
 
     // Pre-fill location from profile
     supabase.auth.getUser().then(({ data }) => {
