@@ -278,6 +278,45 @@ function Browse() {
           />
         </div>
 
+        {/* Type tabs */}
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {[
+            { v: "", l: "All" },
+            { v: "sale", l: "For Sale" },
+            { v: "hire", l: "For Hire" },
+            { v: "service", l: "Services" },
+            { v: "donation", l: "Donations" },
+          ].map((t) => (
+            <button
+              key={t.v}
+              onClick={() => navigate({ to: "/browse", search: (prev) => ({ ...prev, type: t.v || undefined }) })}
+              className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${(type || "") === t.v ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
+            >
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        {/* Browse mode toggle */}
+        <div className="mb-3 inline-flex rounded-lg bg-muted p-0.5 text-xs font-semibold">
+          <button onClick={() => setBrowseMode("category")} className={`px-3 py-1.5 rounded-md ${browseMode === "category" ? "bg-white shadow" : "text-muted-foreground"}`}>By Category</button>
+          <button onClick={() => setBrowseMode("location")} className={`px-3 py-1.5 rounded-md ${browseMode === "location" ? "bg-white shadow" : "text-muted-foreground"}`}>By Location</button>
+        </div>
+
+        {browseMode === "location" && (
+          <LocationDrilldown
+            counties={counties}
+            subcounties={subcounties}
+            wards={wards}
+            county={county}
+            subcounty={subcounty}
+            ward={ward}
+            onPick={(patch) => navigate({ to: "/browse", search: (prev) => ({ ...prev, ...patch }) })}
+          />
+        )}
+
+
+
         {/* Filter chips */}
         {(q || category || county || minPrice !== undefined || maxPrice !== undefined) && (
           <div className="flex flex-wrap items-center gap-1.5 mb-4">
