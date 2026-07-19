@@ -156,6 +156,29 @@ function ListingPage() {
             {listing.description && (
               <p className="mt-3.5 text-xs md:text-sm text-foreground whitespace-pre-wrap">{listing.description}</p>
             )}
+
+            {listing.listing_type === "service" && (
+              <div className="mt-4 rounded-lg bg-accent/20 p-3 space-y-1.5 text-xs">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-primary-dark">Service Provider</div>
+                {listing.job_title && <div><b>Job:</b> {listing.job_title}</div>}
+                {listing.education_level && <div><b>Education:</b> {listing.education_level.toUpperCase()}</div>}
+                {listing.experience_years != null && <div><b>Experience:</b> {listing.experience_years} yr(s)</div>}
+                {listing.languages && listing.languages.length > 0 && <div><b>Languages:</b> {listing.languages.join(", ")}</div>}
+                {listing.self_description && <div className="pt-1 whitespace-pre-wrap">{listing.self_description}</div>}
+              </div>
+            )}
+
+            {(listing.offers_delivery || (listing.payment_methods && listing.payment_methods.length > 0)) && (
+              <div className="mt-3 rounded-lg bg-muted/40 p-3 space-y-1.5 text-xs">
+                {listing.offers_delivery && (
+                  <div><b>Delivery:</b> Available{listing.transport_means ? ` (${listing.transport_means})` : ""}</div>
+                )}
+                {listing.payment_methods && listing.payment_methods.length > 0 && (
+                  <div><b>Payment:</b> {listing.payment_methods.join(", ")}</div>
+                )}
+              </div>
+            )}
+
           </div>
 
           <aside className="bg-card rounded-xl shadow ring-1 ring-black/5 p-4.5 h-fit sticky top-20">
