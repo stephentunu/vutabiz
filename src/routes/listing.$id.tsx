@@ -30,6 +30,15 @@ type Listing = {
   status: string;
   county_id: number | null;
   town: string | null;
+  listing_type: string | null;
+  offers_delivery: boolean | null;
+  transport_means: string | null;
+  payment_methods: string[] | null;
+  job_title: string | null;
+  education_level: string | null;
+  languages: string[] | null;
+  experience_years: number | null;
+  self_description: string | null;
 };
 type Seller = { full_name: string; phone: string; email: string };
 
