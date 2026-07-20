@@ -177,7 +177,7 @@ function Browse() {
       try {
         let query = supabase
           .from("listings")
-          .select("id,title,price,image_url,town,county_id,listing_type,price_type,created_at")
+          .select("id,title,price,image_url,town,county_id,listing_type,work_rate_type,landmark,donation_recipient,created_at")
           .eq("status", "active");
 
         if (q) {

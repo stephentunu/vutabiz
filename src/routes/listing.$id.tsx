@@ -81,7 +81,7 @@ function ListingPage() {
     const { data: l } = await supabase
       .from("listings")
       .select(
-        "id,title,description,price,image_url,seller_id,status,county_id,subcounty_id,ward_id,town,listing_type,price_type,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
+        "id,title,description,price,image_url,seller_id,status,county_id,subcounty_id,ward_id,town,listing_type,work_rate_type,landmark,donation_recipient,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
       )
       .eq("id", id)
       .maybeSingle();
