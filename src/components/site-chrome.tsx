@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   Tag,
+  HeartHandshake,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
