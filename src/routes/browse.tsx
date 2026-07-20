@@ -138,7 +138,7 @@ function Browse() {
         setCounties((data as County[]) ?? []);
       });
     supabase
-      .from("sub_counties")
+      .from("subcounties")
       .select("id,county_id,name")
       .order("name")
       .then(
@@ -155,7 +155,7 @@ function Browse() {
       );
     supabase
       .from("wards")
-      .select("id,county_id,sub_county_id,name")
+      .select("id,county_id,sub_county_id:subcounty_id,name")
       .order("name")
       .then(({ data }) => setWards((data as Ward[]) ?? []));
   }, []);
@@ -185,8 +185,8 @@ function Browse() {
         }
 
         if (county) query = query.eq("county_id", county);
-        if (sub_county) query = query.eq("sub_county_id", sub_county);
-        if (subcounty) query = query.eq("sub_county_id", subcounty);
+        if (sub_county) query = query.eq("subcounty_id", sub_county);
+        if (subcounty) query = query.eq("subcounty_id", subcounty);
         if (ward) query = query.eq("ward_id", ward);
 
         const activeType = type || listing_type;

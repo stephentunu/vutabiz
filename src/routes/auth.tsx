@@ -56,7 +56,7 @@ function AuthPage() {
       .order("name")
       .then(({ data }) => setCounties((data as County[]) ?? []));
     supabase
-      .from("sub_counties")
+      .from("subcounties")
       .select("id,county_id,name")
       .order("name")
       .then(
@@ -73,7 +73,7 @@ function AuthPage() {
       );
     supabase
       .from("wards")
-      .select("id,county_id,sub_county_id,name")
+      .select("id,county_id,sub_county_id:subcounty_id,name")
       .order("name")
       .then(
         ({ data }) => {
