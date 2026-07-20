@@ -168,6 +168,23 @@ function Home() {
               </p>
             </div>
 
+            {/* Sell / Buy quick actions */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                to="/auth"
+                search={{ next: "/sell" }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-accent text-primary-dark px-4 py-2 text-xs md:text-sm font-bold shadow hover:brightness-105 transition"
+              >
+                <Tag className="h-3.5 w-3.5" /> Sell / Advertise
+              </Link>
+              <Link
+                to="/browse"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white text-primary px-4 py-2 text-xs md:text-sm font-bold shadow hover:shadow-md transition"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" /> Buy / Hire
+              </Link>
+            </div>
+
             {/* Inline Search Bar */}
             <form
               onSubmit={handleSearch}
