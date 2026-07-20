@@ -54,7 +54,7 @@ type ListingRow = {
   town: string | null;
   county_id: number | null;
   listing_type: "sale" | "hire" | "service" | "donation" | null;
-  price_type: "fixed" | "daily" | "hourly" | null;
+  work_rate_type: string | null;
   created_at: string;
 };
 
@@ -86,9 +86,10 @@ const LISTING_TYPE_LABELS: Record<string, { label: string; icon: typeof Shopping
 };
 
 const PRICE_TYPE_SUFFIX: Record<string, string> = {
-  fixed: "",
-  daily: "/day",
   hourly: "/hr",
+  weekly: "/wk",
+  monthly: "/mo",
+  agreed: " (agreed)",
 };
 
 type PrevSearch = {
@@ -138,7 +139,7 @@ function Browse() {
         setCounties((data as County[]) ?? []);
       });
     supabase
-      .from("sub_counties")
+      .from("subcounties")
       .select("id,county_id,name")
       .order("name")
       .then(
@@ -155,7 +156,7 @@ function Browse() {
       );
     supabase
       .from("wards")
-      .select("id,county_id,sub_county_id,name")
+      .select("id,county_id,sub_county_id:subcounty_id,name")
       .order("name")
       .then(({ data }) => setWards((data as Ward[]) ?? []));
   }, []);
@@ -177,7 +178,7 @@ function Browse() {
       try {
         let query = supabase
           .from("listings")
-          .select("id,title,price,image_url,town,county_id,listing_type,price_type,created_at")
+          .select("id,title,price,image_url,town,county_id,listing_type,work_rate_type,landmark,donation_recipient,created_at")
           .eq("status", "active");
 
         if (q) {
@@ -185,8 +186,8 @@ function Browse() {
         }
 
         if (county) query = query.eq("county_id", county);
-        if (sub_county) query = query.eq("sub_county_id", sub_county);
-        if (subcounty) query = query.eq("sub_county_id", subcounty);
+        if (sub_county) query = query.eq("subcounty_id", sub_county);
+        if (subcounty) query = query.eq("subcounty_id", subcounty);
         if (ward) query = query.eq("ward_id", ward);
 
         const activeType = type || listing_type;
@@ -643,8 +644,8 @@ function Browse() {
                 {items.map((it) => {
                   const typeInfo = it.listing_type ? LISTING_TYPE_LABELS[it.listing_type] : null;
                   const priceSuffix =
-                    it.price_type && it.price_type !== "fixed"
-                      ? PRICE_TYPE_SUFFIX[it.price_type]
+                    it.work_rate_type
+                      ? PRICE_TYPE_SUFFIX[it.work_rate_type] ?? ""
                       : "";
                   return (
                     <Link

@@ -19,24 +19,18 @@ type ListingType = "sale" | "hire" | "service" | "donation";
 
 const PAYMENT_OPTIONS = [
   "M-Pesa",
-  "M-Pesa Paybill",
-  "M-Pesa Till",
   "Pochi la Biashara",
   "Airtel Money",
   "T-Kash",
   "Bank Transfer",
-  "Cash on Delivery",
+  "Cash on Delivery/Receipt",
 ];
-const TRANSPORT_OPTIONS = [
-  "Boda Boda",
-  "Tuk Tuk",
-  "Pickup",
-  "Lorry / Canter",
-  "Personal Car",
-  "Courier (G4S, Wells Fargo)",
-  "Bus Parcel",
+const WORK_RATE_OPTIONS = [
+  { v: "hourly", l: "Hourly" },
+  { v: "weekly", l: "Weekly" },
+  { v: "monthly", l: "Monthly" },
+  { v: "agreed", l: "Agreed with employer" },
 ];
-const LANGUAGE_OPTIONS = ["Swahili", "English", "Kikuyu", "Luo", "Kalenjin", "Luhya", "Kamba", "Kisii", "Meru", "Somali"];
 const EDU_OPTIONS: { v: string; l: string }[] = [
   { v: "none", l: "None" },
   { v: "kcpe", l: "KCPE" },
@@ -87,12 +81,20 @@ function SellPage() {
   // Service-specific
   const [jobTitle, setJobTitle] = useState("");
   const [education, setEducation] = useState<string>("kcse");
-  const [languages, setLanguages] = useState<string[]>(["Swahili", "English"]);
+  const [languagesText, setLanguagesText] = useState<string>("Swahili, English");
   const [experience, setExperience] = useState<number>(1);
   const [selfDesc, setSelfDesc] = useState("");
+  const [workRateType, setWorkRateType] = useState<string>("hourly");
+
+  // Donation-specific
+  const [donationRecipient, setDonationRecipient] = useState("");
+
+  // Location extra
+  const [landmark, setLandmark] = useState("");
 
   const [fee, setFee] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [mpesa, setMpesa] = useState("");
 
@@ -108,7 +110,7 @@ function SellPage() {
       .order("name")
       .then(({ data }) => setCounties((data as County[]) ?? []));
     supabase
-      .from("sub_counties")
+      .from("subcounties")
       .select("id,county_id,name")
       .order("name")
       .then(
@@ -125,7 +127,7 @@ function SellPage() {
       );
     supabase
       .from("wards")
-      .select("id,county_id,sub_county_id,name")
+      .select("id,county_id,sub_county_id:subcounty_id,name")
       .order("name")
       .then(
         ({ data }) => {
@@ -160,13 +162,13 @@ function SellPage() {
       if (data.user)
         supabase
           .from("profiles")
-          .select("county_id,sub_county_id,ward_id,town,phone")
+          .select("county_id,ward_id,town,phone")
           .eq("id", data.user.id)
           .maybeSingle()
           .then(({ data: p }) => {
             if (p) {
               setCountyId(p.county_id ?? "");
-              setSubCountyId((p as { sub_county_id?: number | null }).sub_county_id ?? "");
+              
               setWardId(p.ward_id ?? "");
               setTown(p.town ?? "");
               setContactPhone((p as { phone?: string | null }).phone ?? "");
@@ -196,8 +198,25 @@ function SellPage() {
 
   const togglePay = (m: string) =>
     setPayMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
-  const toggleLang = (m: string) =>
-    setLanguages((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+
+  async function handleImageUpload(file: File) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${u.user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("listing-images").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: signed } = await supabase.storage.from("listing-images").createSignedUrl(path, 60 * 60 * 24 * 365);
+      setImageUrl(signed?.signedUrl || "");
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submitListing(e: React.FormEvent) {
     e.preventDefault();
@@ -211,9 +230,10 @@ function SellPage() {
           price: finalPrice,
           category_id: categoryId ? Number(categoryId) : null,
           county_id: countyId ? Number(countyId) : null,
-          sub_county_id: subCountyId ? Number(subCountyId) : null,
+          subcounty_id: subCountyId ? Number(subCountyId) : null,
           ward_id: wardId ? Number(wardId) : null,
           town,
+          landmark: landmark || null,
           image_url: imageUrl || null,
           distance_km: distance,
           risk,
@@ -222,12 +242,16 @@ function SellPage() {
           contact_phone: contactPhone || null,
           offers_delivery: listingType === "sale" || listingType === "hire" ? offersDelivery : false,
           transport_means: offersDelivery ? transport || null : null,
-          payment_methods: listingType === "service" || listingType === "sale" || listingType === "hire" ? payMethods : [],
+          payment_methods: listingType !== "donation" ? payMethods : [],
           job_title: listingType === "service" ? jobTitle : null,
           education_level: listingType === "service" ? (education as "none"|"kcpe"|"kcse"|"certificate"|"diploma"|"degree") : null,
-          languages: listingType === "service" ? languages : [],
+          languages: listingType === "service"
+            ? languagesText.split(",").map((s) => s.trim()).filter(Boolean)
+            : [],
           experience_years: listingType === "service" ? experience : null,
           self_description: listingType === "service" ? selfDesc : null,
+          work_rate_type: listingType === "service" ? (workRateType as "hourly"|"weekly"|"monthly"|"agreed") : null,
+          donation_recipient: listingType === "donation" ? donationRecipient || null : null,
         },
       });
       setCreatedId(res.id);
@@ -296,16 +320,19 @@ function SellPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     <NumField label="Years of Experience" v={experience} on={setExperience} />
-                    <NumField label={"Rate (KSh, per job/hour)"} v={price} on={setPrice} required />
+                    <NumField label={"Rate (KSh)"} v={price} on={setPrice} required />
                   </div>
-                  <div>
-                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Languages Spoken</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {LANGUAGE_OPTIONS.map((l) => (
-                        <button type="button" key={l} onClick={() => toggleLang(l)} className={`text-[11px] px-2.5 py-1 rounded-full border ${languages.includes(l) ? "bg-primary text-white border-primary" : "bg-white border-border"}`}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
+                  <Sel
+                    label="Work Rate"
+                    v={workRateType}
+                    on={(v) => setWorkRateType(v as string)}
+                    opts={WORK_RATE_OPTIONS}
+                  />
+                  <Field
+                    label="Languages Spoken (comma separated, e.g. Swahili, English, Kikuyu)"
+                    v={languagesText}
+                    on={setLanguagesText}
+                  />
                   <Field label="Brief Self Description (skills, past works)" v={selfDesc} on={setSelfDesc} textarea />
                 </>
               )}
@@ -366,11 +393,42 @@ function SellPage() {
 
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Town / Estate" v={town} on={setTown} />
-                <Field label="Image URL (optional)" v={imageUrl} on={setImageUrl} />
+                <Field label="Visible Landmark (e.g. Near KCB, Opposite Total)" v={landmark} on={setLandmark} />
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Contact Phone" v={contactPhone} on={setContactPhone} required />
+              </div>
+
+              {listingType === "donation" && (
+                <Field
+                  label="Donation Recipient (who/where — e.g. Nyumbani Children's Home, Kibera families)"
+                  v={donationRecipient}
+                  on={setDonationRecipient}
+                  required
+                />
+              )}
+
+              <div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Image {listingType === "service" ? "(optional)" : ""}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImageUpload(f);
+                    }}
+                    className="text-xs"
+                  />
+                  {uploading && <span className="text-xs text-muted-foreground">Uploading…</span>}
+                  {imageUrl && !uploading && (
+                    <img src={imageUrl} alt="preview" className="h-12 w-12 rounded object-cover ring-1 ring-black/10" />
+                  )}
+                </div>
               </div>
 
               {(listingType === "sale" || listingType === "hire") && (
@@ -381,7 +439,11 @@ function SellPage() {
                     I offer delivery for this {listingType === "hire" ? "hire" : "item"}
                   </label>
                   {offersDelivery && (
-                    <Sel label="Means of Transport" v={transport} on={(v) => setTransport(v as string)} opts={[{ v: "", l: "Select" }, ...TRANSPORT_OPTIONS.map((t) => ({ v: t, l: t }))]} />
+                    <Field
+                      label="Means of Transport / Courier (e.g. Boda Boda, Pickup, G4S Courier, Sendy)"
+                      v={transport}
+                      on={setTransport}
+                    />
                   )}
                 </div>
               )}

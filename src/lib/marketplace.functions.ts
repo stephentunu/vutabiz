@@ -25,6 +25,9 @@ const listingInput = z.object({
   languages: z.array(z.string().max(30)).default([]),
   experience_years: z.number().int().min(0).max(80).optional().nullable(),
   self_description: z.string().max(1000).optional().nullable(),
+  landmark: z.string().max(120).optional().nullable(),
+  donation_recipient: z.string().max(200).optional().nullable(),
+  work_rate_type: z.enum(["hourly","weekly","monthly","agreed"]).optional().nullable(),
 });
 
 

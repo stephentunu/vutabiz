@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { makeOffer } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
-import { MessageCircle, Phone, Lock, MapPin, ShoppingBag, Wrench, Users } from "lucide-react";
+import { MessageCircle, Phone, Lock, MapPin, ShoppingBag, Wrench, Users, HeartHandshake } from "lucide-react";
 
 export const Route = createFileRoute("/listing/$id")({
   component: ListingPage,
@@ -33,7 +33,9 @@ type Listing = {
   ward_id: number | null;
   town: string | null;
   listing_type: "sale" | "hire" | "service" | "donation" | null;
-  price_type: "fixed" | "daily" | "hourly" | null;
+  work_rate_type: string | null;
+  landmark: string | null;
+  donation_recipient: string | null;
   offers_delivery: boolean | null;
   transport_means: string | null;
   payment_methods: string[] | null;
@@ -45,28 +47,18 @@ type Listing = {
 };
 type Seller = { full_name: string; phone: string; email: string };
 
-const LISTING_TYPE_CONFIG = {
-  sale: {
-    label: "For Sale",
-    icon: ShoppingBag,
-    color: "bg-primary/10 text-primary-dark border-primary/20",
-  },
-  hire: {
-    label: "For Hire",
-    icon: Wrench,
-    color: "bg-amber-500/10 text-amber-700 border-amber-200",
-  },
-  service: {
-    label: "Service",
-    icon: Users,
-    color: "bg-emerald-500/10 text-emerald-700 border-emerald-200",
-  },
+const LISTING_TYPE_CONFIG: Record<string, { label: string; icon: typeof ShoppingBag; color: string }> = {
+  sale: { label: "For Sale", icon: ShoppingBag, color: "bg-primary/10 text-primary-dark border-primary/20" },
+  hire: { label: "For Hire", icon: Wrench, color: "bg-amber-500/10 text-amber-700 border-amber-200" },
+  service: { label: "Service", icon: Users, color: "bg-emerald-500/10 text-emerald-700 border-emerald-200" },
+  donation: { label: "Donation", icon: HeartHandshake, color: "bg-rose-500/10 text-rose-700 border-rose-200" },
 };
 
-const PRICE_TYPE_LABEL = {
-  fixed: "",
-  daily: " / day",
-  hourly: " / hr",
+const WORK_RATE_LABEL: Record<string, string> = {
+  hourly: " / hour",
+  weekly: " / week",
+  monthly: " / month",
+  agreed: " (agreed)",
 };
 
 function ListingPage() {
@@ -89,7 +81,7 @@ function ListingPage() {
     const { data: l } = await supabase
       .from("listings")
       .select(
-        "id,title,description,price,image_url,seller_id,status,county_id,subcounty_id,ward_id,town,listing_type,price_type,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
+        "id,title,description,price,image_url,seller_id,status,county_id,subcounty_id,ward_id,town,listing_type,work_rate_type,landmark,donation_recipient,offers_delivery,transport_means,payment_methods,job_title,education_level,languages,experience_years,self_description",
       )
       .eq("id", id)
       .maybeSingle();
@@ -177,8 +169,8 @@ function ListingPage() {
   const contactVisible = accepted || me === listing.seller_id;
   const typeConfig = listing.listing_type ? LISTING_TYPE_CONFIG[listing.listing_type] : null;
   const priceSuffix =
-    listing.price_type && listing.price_type !== "fixed"
-      ? PRICE_TYPE_LABEL[listing.price_type]
+    listing.listing_type === "service" && listing.work_rate_type
+      ? WORK_RATE_LABEL[listing.work_rate_type] ?? ""
       : "";
 
   // Build location breadcrumb: County › Sub-County › Ward › Town

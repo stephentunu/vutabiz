@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   Tag,
+  HeartHandshake,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,9 +78,10 @@ export function Header() {
     window.location.href = "/";
   };
 
-  const navLinks = [
+  const navLinks: { to: string; label: string; search?: Record<string, string> }[] = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
+    { to: "/browse", label: "Donation Hub", search: { listing_type: "donation" } },
     ...(email ? [{ to: "/dashboard", label: "Dashboard" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
@@ -91,8 +93,8 @@ export function Header() {
 
         {/* Desktop nav */}
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium text-white/90">
-          {navLinks.map((n) => (
-            <Link key={n.to} to={n.to} className="hover:text-white transition-colors">
+          {navLinks.map((n, i) => (
+            <Link key={`${n.to}-${i}`} to={n.to} search={n.search as never} className="hover:text-white transition-colors">
               {n.label}
             </Link>
           ))}
@@ -149,15 +151,17 @@ export function Header() {
       {/* Mobile nav drawer */}
       {mobileOpen && (
         <div className="lg:hidden border-t border-white/10 bg-primary-dark px-5 py-4 space-y-1 animate-in slide-in-from-top duration-200">
-          {navLinks.map((n) => (
+          {navLinks.map((n, i) => (
             <Link
-              key={n.to}
+              key={`${n.to}-${i}`}
               to={n.to}
+              search={n.search as never}
               onClick={() => setMobileOpen(false)}
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white transition"
             >
-              {n.to === "/" && <span>🏠</span>}
-              {n.to === "/browse" && <span>🔍</span>}
+              {n.label === "Donation Hub" && <HeartHandshake className="h-4 w-4" />}
+              {n.to === "/" && n.label === "Home" && <span>🏠</span>}
+              {n.to === "/browse" && n.label === "Browse" && <span>🔍</span>}
               {n.to === "/dashboard" && <LayoutDashboard className="h-4 w-4" />}
               {n.to === "/admin" && <ShieldAlert className="h-4 w-4" />}
               {n.label}

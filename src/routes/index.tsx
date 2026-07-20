@@ -16,6 +16,8 @@ import {
   Package,
   HeartHandshake,
   TrendingUp,
+  Tag,
+  ShoppingBag,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
@@ -166,6 +168,23 @@ function Home() {
               <p className="mt-1 text-xs md:text-sm text-white/85 max-w-2xl font-medium">
                 Buy &amp; sell goods, hire equipment, and find skilled services locally across Kenya — all in one trusted marketplace.
               </p>
+            </div>
+
+            {/* Sell / Buy quick actions */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <Link
+                to="/auth"
+                search={{ next: "/sell" }}
+                className="inline-flex items-center gap-1.5 rounded-full bg-accent text-primary-dark px-4 py-2 text-xs md:text-sm font-bold shadow hover:brightness-105 transition"
+              >
+                <Tag className="h-3.5 w-3.5" /> Sell / Advertise
+              </Link>
+              <Link
+                to="/browse"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white text-primary px-4 py-2 text-xs md:text-sm font-bold shadow hover:shadow-md transition"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" /> Buy / Hire
+              </Link>
             </div>
 
             {/* Inline Search Bar */}

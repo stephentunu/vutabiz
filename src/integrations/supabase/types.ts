@@ -75,18 +75,19 @@ export type Database = {
           created_at: string
           description: string | null
           distance_km: number
+          donation_recipient: string | null
           duration_days: number
           education_level: Database["public"]["Enums"]["education_level"] | null
           experience_years: number | null
           id: string
           image_url: string | null
           job_title: string | null
+          landmark: string | null
           languages: string[]
           listing_type: Database["public"]["Enums"]["listing_type"]
           offers_delivery: boolean
           payment_methods: string[]
           price: number
-          price_type: Database["public"]["Enums"]["price_type"]
           risk: Database["public"]["Enums"]["risk_level"]
           self_description: string | null
           seller_id: string
@@ -97,6 +98,7 @@ export type Database = {
           transport_means: string | null
           updated_at: string
           ward_id: number | null
+          work_rate_type: string | null
         }
         Insert: {
           ad_expires_at?: string | null
@@ -108,6 +110,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           distance_km?: number
+          donation_recipient?: string | null
           duration_days?: number
           education_level?:
             | Database["public"]["Enums"]["education_level"]
@@ -116,12 +119,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           job_title?: string | null
+          landmark?: string | null
           languages?: string[]
           listing_type?: Database["public"]["Enums"]["listing_type"]
           offers_delivery?: boolean
           payment_methods?: string[]
           price: number
-          price_type?: Database["public"]["Enums"]["price_type"]
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id: string
@@ -132,6 +135,7 @@ export type Database = {
           transport_means?: string | null
           updated_at?: string
           ward_id?: number | null
+          work_rate_type?: string | null
         }
         Update: {
           ad_expires_at?: string | null
@@ -143,6 +147,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           distance_km?: number
+          donation_recipient?: string | null
           duration_days?: number
           education_level?:
             | Database["public"]["Enums"]["education_level"]
@@ -151,12 +156,12 @@ export type Database = {
           id?: string
           image_url?: string | null
           job_title?: string | null
+          landmark?: string | null
           languages?: string[]
           listing_type?: Database["public"]["Enums"]["listing_type"]
           offers_delivery?: boolean
           payment_methods?: string[]
           price?: number
-          price_type?: Database["public"]["Enums"]["price_type"]
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id?: string
@@ -167,6 +172,7 @@ export type Database = {
           transport_means?: string | null
           updated_at?: string
           ward_id?: number | null
+          work_rate_type?: string | null
         }
         Relationships: [
           {
@@ -295,7 +301,6 @@ export type Database = {
           id: string
           market_share: number
           phone: string
-          subcounty_id: number | null
           town: string | null
           updated_at: string
           ward_id: number | null
@@ -310,7 +315,6 @@ export type Database = {
           id: string
           market_share?: number
           phone?: string
-          subcounty_id?: number | null
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -325,7 +329,6 @@ export type Database = {
           id?: string
           market_share?: number
           phone?: string
-          subcounty_id?: number | null
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -336,14 +339,6 @@ export type Database = {
             columns: ["county_id"]
             isOneToOne: false
             referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
-          {
-            foreignKeyName: "profiles_subcounty_id_fkey"
-            columns: ["subcounty_id"]
-            isOneToOne: false
-            referencedRelation: "subcounties"
             referencedColumns: ["id"]
           },
           {
@@ -435,6 +430,7 @@ export type Database = {
           },
         ]
       }
+    }
     Views: {
       [_ in never]: never
     }
@@ -470,8 +466,8 @@ export type Database = {
       listing_status: "active" | "sold" | "deleted"
       listing_type: "sale" | "hire" | "service" | "donation"
       offer_status: "pending" | "accepted" | "rejected"
-      price_type: "fixed" | "daily" | "hourly"
       risk_level: "low" | "medium" | "high"
+    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -610,7 +606,6 @@ export const Constants = {
       listing_status: ["active", "sold", "deleted"],
       listing_type: ["sale", "hire", "service", "donation"],
       offer_status: ["pending", "accepted", "rejected"],
-      price_type: ["fixed", "daily", "hourly"],
       risk_level: ["low", "medium", "high"],
     },
   },
