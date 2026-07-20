@@ -160,13 +160,13 @@ function SellPage() {
       if (data.user)
         supabase
           .from("profiles")
-          .select("county_id,sub_county_id,ward_id,town,phone")
+          .select("county_id,ward_id,town,phone")
           .eq("id", data.user.id)
           .maybeSingle()
           .then(({ data: p }) => {
             if (p) {
               setCountyId(p.county_id ?? "");
-              setSubCountyId((p as { sub_county_id?: number | null }).sub_county_id ?? "");
+              
               setWardId(p.ward_id ?? "");
               setTown(p.town ?? "");
               setContactPhone((p as { phone?: string | null }).phone ?? "");
