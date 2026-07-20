@@ -198,8 +198,25 @@ function SellPage() {
 
   const togglePay = (m: string) =>
     setPayMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
-  const toggleLang = (m: string) =>
-    setLanguages((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+
+  async function handleImageUpload(file: File) {
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${u.user.id}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage.from("listing-images").upload(path, file, { upsert: false });
+      if (error) throw error;
+      const { data: signed } = await supabase.storage.from("listing-images").createSignedUrl(path, 60 * 60 * 24 * 365);
+      setImageUrl(signed?.signedUrl || "");
+      toast.success("Image uploaded");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submitListing(e: React.FormEvent) {
     e.preventDefault();
