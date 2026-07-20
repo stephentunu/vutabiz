@@ -230,9 +230,10 @@ function SellPage() {
           price: finalPrice,
           category_id: categoryId ? Number(categoryId) : null,
           county_id: countyId ? Number(countyId) : null,
-          sub_county_id: subCountyId ? Number(subCountyId) : null,
+          subcounty_id: subCountyId ? Number(subCountyId) : null,
           ward_id: wardId ? Number(wardId) : null,
           town,
+          landmark: landmark || null,
           image_url: imageUrl || null,
           distance_km: distance,
           risk,
@@ -241,12 +242,16 @@ function SellPage() {
           contact_phone: contactPhone || null,
           offers_delivery: listingType === "sale" || listingType === "hire" ? offersDelivery : false,
           transport_means: offersDelivery ? transport || null : null,
-          payment_methods: listingType === "service" || listingType === "sale" || listingType === "hire" ? payMethods : [],
+          payment_methods: listingType !== "donation" ? payMethods : [],
           job_title: listingType === "service" ? jobTitle : null,
           education_level: listingType === "service" ? (education as "none"|"kcpe"|"kcse"|"certificate"|"diploma"|"degree") : null,
-          languages: listingType === "service" ? languages : [],
+          languages: listingType === "service"
+            ? languagesText.split(",").map((s) => s.trim()).filter(Boolean)
+            : [],
           experience_years: listingType === "service" ? experience : null,
           self_description: listingType === "service" ? selfDesc : null,
+          work_rate_type: listingType === "service" ? (workRateType as "hourly"|"weekly"|"monthly"|"agreed") : null,
+          donation_recipient: listingType === "donation" ? donationRecipient || null : null,
         },
       });
       setCreatedId(res.id);
@@ -315,16 +320,19 @@ function SellPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
                     <NumField label="Years of Experience" v={experience} on={setExperience} />
-                    <NumField label={"Rate (KSh, per job/hour)"} v={price} on={setPrice} required />
+                    <NumField label={"Rate (KSh)"} v={price} on={setPrice} required />
                   </div>
-                  <div>
-                    <div className="text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Languages Spoken</div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {LANGUAGE_OPTIONS.map((l) => (
-                        <button type="button" key={l} onClick={() => toggleLang(l)} className={`text-[11px] px-2.5 py-1 rounded-full border ${languages.includes(l) ? "bg-primary text-white border-primary" : "bg-white border-border"}`}>{l}</button>
-                      ))}
-                    </div>
-                  </div>
+                  <Sel
+                    label="Work Rate"
+                    v={workRateType}
+                    on={(v) => setWorkRateType(v as string)}
+                    opts={WORK_RATE_OPTIONS}
+                  />
+                  <Field
+                    label="Languages Spoken (comma separated, e.g. Swahili, English, Kikuyu)"
+                    v={languagesText}
+                    on={setLanguagesText}
+                  />
                   <Field label="Brief Self Description (skills, past works)" v={selfDesc} on={setSelfDesc} textarea />
                 </>
               )}
