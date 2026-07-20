@@ -393,11 +393,42 @@ function SellPage() {
 
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Town / Estate" v={town} on={setTown} />
-                <Field label="Image URL (optional)" v={imageUrl} on={setImageUrl} />
+                <Field label="Visible Landmark (e.g. Near KCB, Opposite Total)" v={landmark} on={setLandmark} />
               </div>
 
               <div className="grid grid-cols-2 gap-2.5">
                 <Field label="Contact Phone" v={contactPhone} on={setContactPhone} required />
+              </div>
+
+              {listingType === "donation" && (
+                <Field
+                  label="Donation Recipient (who/where — e.g. Nyumbani Children's Home, Kibera families)"
+                  v={donationRecipient}
+                  on={setDonationRecipient}
+                  required
+                />
+              )}
+
+              <div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Image {listingType === "service" ? "(optional)" : ""}
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploading}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleImageUpload(f);
+                    }}
+                    className="text-xs"
+                  />
+                  {uploading && <span className="text-xs text-muted-foreground">Uploading…</span>}
+                  {imageUrl && !uploading && (
+                    <img src={imageUrl} alt="preview" className="h-12 w-12 rounded object-cover ring-1 ring-black/10" />
+                  )}
+                </div>
               </div>
 
               {(listingType === "sale" || listingType === "hire") && (
@@ -408,7 +439,11 @@ function SellPage() {
                     I offer delivery for this {listingType === "hire" ? "hire" : "item"}
                   </label>
                   {offersDelivery && (
-                    <Sel label="Means of Transport" v={transport} on={(v) => setTransport(v as string)} opts={[{ v: "", l: "Select" }, ...TRANSPORT_OPTIONS.map((t) => ({ v: t, l: t }))]} />
+                    <Field
+                      label="Means of Transport / Courier (e.g. Boda Boda, Pickup, G4S Courier, Sendy)"
+                      v={transport}
+                      on={setTransport}
+                    />
                   )}
                 </div>
               )}
