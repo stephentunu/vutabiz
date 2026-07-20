@@ -16,6 +16,8 @@ import {
   Package,
   HeartHandshake,
   TrendingUp,
+  Tag,
+  ShoppingBag,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
