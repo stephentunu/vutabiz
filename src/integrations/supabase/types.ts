@@ -75,12 +75,14 @@ export type Database = {
           created_at: string
           description: string | null
           distance_km: number
+          donation_recipient: string | null
           duration_days: number
           education_level: Database["public"]["Enums"]["education_level"] | null
           experience_years: number | null
           id: string
           image_url: string | null
           job_title: string | null
+          landmark: string | null
           languages: string[]
           listing_type: Database["public"]["Enums"]["listing_type"]
           offers_delivery: boolean
@@ -96,6 +98,7 @@ export type Database = {
           transport_means: string | null
           updated_at: string
           ward_id: number | null
+          work_rate_type: string | null
         }
         Insert: {
           ad_expires_at?: string | null
@@ -107,6 +110,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           distance_km?: number
+          donation_recipient?: string | null
           duration_days?: number
           education_level?:
             | Database["public"]["Enums"]["education_level"]
@@ -115,6 +119,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           job_title?: string | null
+          landmark?: string | null
           languages?: string[]
           listing_type?: Database["public"]["Enums"]["listing_type"]
           offers_delivery?: boolean
@@ -130,6 +135,7 @@ export type Database = {
           transport_means?: string | null
           updated_at?: string
           ward_id?: number | null
+          work_rate_type?: string | null
         }
         Update: {
           ad_expires_at?: string | null
@@ -141,6 +147,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           distance_km?: number
+          donation_recipient?: string | null
           duration_days?: number
           education_level?:
             | Database["public"]["Enums"]["education_level"]
@@ -149,6 +156,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           job_title?: string | null
+          landmark?: string | null
           languages?: string[]
           listing_type?: Database["public"]["Enums"]["listing_type"]
           offers_delivery?: boolean
@@ -164,6 +172,7 @@ export type Database = {
           transport_means?: string | null
           updated_at?: string
           ward_id?: number | null
+          work_rate_type?: string | null
         }
         Relationships: [
           {
