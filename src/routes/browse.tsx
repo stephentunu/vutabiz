@@ -54,7 +54,7 @@ type ListingRow = {
   town: string | null;
   county_id: number | null;
   listing_type: "sale" | "hire" | "service" | "donation" | null;
-  price_type: "fixed" | "daily" | "hourly" | null;
+  work_rate_type: string | null;
   created_at: string;
 };
 
@@ -86,9 +86,10 @@ const LISTING_TYPE_LABELS: Record<string, { label: string; icon: typeof Shopping
 };
 
 const PRICE_TYPE_SUFFIX: Record<string, string> = {
-  fixed: "",
-  daily: "/day",
   hourly: "/hr",
+  weekly: "/wk",
+  monthly: "/mo",
+  agreed: " (agreed)",
 };
 
 type PrevSearch = {
@@ -643,8 +644,8 @@ function Browse() {
                 {items.map((it) => {
                   const typeInfo = it.listing_type ? LISTING_TYPE_LABELS[it.listing_type] : null;
                   const priceSuffix =
-                    it.price_type && it.price_type !== "fixed"
-                      ? PRICE_TYPE_SUFFIX[it.price_type]
+                    it.work_rate_type
+                      ? PRICE_TYPE_SUFFIX[it.work_rate_type] ?? ""
                       : "";
                   return (
                     <Link
