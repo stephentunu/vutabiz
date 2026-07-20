@@ -86,7 +86,6 @@ export type Database = {
           offers_delivery: boolean
           payment_methods: string[]
           price: number
-          price_type: Database["public"]["Enums"]["price_type"]
           risk: Database["public"]["Enums"]["risk_level"]
           self_description: string | null
           seller_id: string
@@ -121,7 +120,6 @@ export type Database = {
           offers_delivery?: boolean
           payment_methods?: string[]
           price: number
-          price_type?: Database["public"]["Enums"]["price_type"]
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id: string
@@ -156,7 +154,6 @@ export type Database = {
           offers_delivery?: boolean
           payment_methods?: string[]
           price?: number
-          price_type?: Database["public"]["Enums"]["price_type"]
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id?: string
@@ -295,7 +292,6 @@ export type Database = {
           id: string
           market_share: number
           phone: string
-          subcounty_id: number | null
           town: string | null
           updated_at: string
           ward_id: number | null
@@ -310,7 +306,6 @@ export type Database = {
           id: string
           market_share?: number
           phone?: string
-          subcounty_id?: number | null
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -325,7 +320,6 @@ export type Database = {
           id?: string
           market_share?: number
           phone?: string
-          subcounty_id?: number | null
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -336,14 +330,6 @@ export type Database = {
             columns: ["county_id"]
             isOneToOne: false
             referencedRelation: "counties"
-            referencedColumns: ["id"]
-          },
-          {
-          {
-            foreignKeyName: "profiles_subcounty_id_fkey"
-            columns: ["subcounty_id"]
-            isOneToOne: false
-            referencedRelation: "subcounties"
             referencedColumns: ["id"]
           },
           {
@@ -435,6 +421,7 @@ export type Database = {
           },
         ]
       }
+    }
     Views: {
       [_ in never]: never
     }
@@ -470,8 +457,8 @@ export type Database = {
       listing_status: "active" | "sold" | "deleted"
       listing_type: "sale" | "hire" | "service" | "donation"
       offer_status: "pending" | "accepted" | "rejected"
-      price_type: "fixed" | "daily" | "hourly"
       risk_level: "low" | "medium" | "high"
+    }
     CompositeTypes: {
       [_ in never]: never
     }
@@ -610,7 +597,6 @@ export const Constants = {
       listing_status: ["active", "sold", "deleted"],
       listing_type: ["sale", "hire", "service", "donation"],
       offer_status: ["pending", "accepted", "rejected"],
-      price_type: ["fixed", "daily", "hourly"],
       risk_level: ["low", "medium", "high"],
     },
   },
