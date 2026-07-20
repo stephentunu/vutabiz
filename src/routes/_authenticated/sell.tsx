@@ -19,24 +19,18 @@ type ListingType = "sale" | "hire" | "service" | "donation";
 
 const PAYMENT_OPTIONS = [
   "M-Pesa",
-  "M-Pesa Paybill",
-  "M-Pesa Till",
   "Pochi la Biashara",
   "Airtel Money",
   "T-Kash",
   "Bank Transfer",
-  "Cash on Delivery",
+  "Cash on Delivery/Receipt",
 ];
-const TRANSPORT_OPTIONS = [
-  "Boda Boda",
-  "Tuk Tuk",
-  "Pickup",
-  "Lorry / Canter",
-  "Personal Car",
-  "Courier (G4S, Wells Fargo)",
-  "Bus Parcel",
+const WORK_RATE_OPTIONS = [
+  { v: "hourly", l: "Hourly" },
+  { v: "weekly", l: "Weekly" },
+  { v: "monthly", l: "Monthly" },
+  { v: "agreed", l: "Agreed with employer" },
 ];
-const LANGUAGE_OPTIONS = ["Swahili", "English", "Kikuyu", "Luo", "Kalenjin", "Luhya", "Kamba", "Kisii", "Meru", "Somali"];
 const EDU_OPTIONS: { v: string; l: string }[] = [
   { v: "none", l: "None" },
   { v: "kcpe", l: "KCPE" },
