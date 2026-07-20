@@ -81,12 +81,20 @@ function SellPage() {
   // Service-specific
   const [jobTitle, setJobTitle] = useState("");
   const [education, setEducation] = useState<string>("kcse");
-  const [languages, setLanguages] = useState<string[]>(["Swahili", "English"]);
+  const [languagesText, setLanguagesText] = useState<string>("Swahili, English");
   const [experience, setExperience] = useState<number>(1);
   const [selfDesc, setSelfDesc] = useState("");
+  const [workRateType, setWorkRateType] = useState<string>("hourly");
+
+  // Donation-specific
+  const [donationRecipient, setDonationRecipient] = useState("");
+
+  // Location extra
+  const [landmark, setLandmark] = useState("");
 
   const [fee, setFee] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [mpesa, setMpesa] = useState("");
 
