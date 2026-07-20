@@ -77,9 +77,10 @@ export function Header() {
     window.location.href = "/";
   };
 
-  const navLinks = [
+  const navLinks: { to: string; label: string; search?: Record<string, string> }[] = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
+    { to: "/browse", label: "Donation Hub", search: { listing_type: "donation" } },
     ...(email ? [{ to: "/dashboard", label: "Dashboard" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
