@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { makeOffer } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
-import { MessageCircle, Phone, Lock, MapPin, ShoppingBag, Wrench, Users } from "lucide-react";
+import { MessageCircle, Phone, Lock, MapPin, ShoppingBag, Wrench, Users, HeartHandshake } from "lucide-react";
 
 export const Route = createFileRoute("/listing/$id")({
   component: ListingPage,
@@ -169,8 +169,8 @@ function ListingPage() {
   const contactVisible = accepted || me === listing.seller_id;
   const typeConfig = listing.listing_type ? LISTING_TYPE_CONFIG[listing.listing_type] : null;
   const priceSuffix =
-    listing.price_type && listing.price_type !== "fixed"
-      ? PRICE_TYPE_LABEL[listing.price_type]
+    listing.listing_type === "service" && listing.work_rate_type
+      ? WORK_RATE_LABEL[listing.work_rate_type] ?? ""
       : "";
 
   // Build location breadcrumb: County › Sub-County › Ward › Town
