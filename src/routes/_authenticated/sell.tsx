@@ -7,6 +7,7 @@ import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
+import { SKILL_CATEGORIES } from "@/lib/skills-data";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
@@ -85,6 +86,8 @@ function SellPage() {
   const [experience, setExperience] = useState<number>(1);
   const [selfDesc, setSelfDesc] = useState("");
   const [workRateType, setWorkRateType] = useState<string>("hourly");
+  const [skillCategorySlug, setSkillCategorySlug] = useState<string>("");
+  const [skillSpecialty, setSkillSpecialty] = useState<string>("");
 
   // Donation-specific
   const [donationRecipient, setDonationRecipient] = useState("");
@@ -125,37 +128,39 @@ function SellPage() {
           setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
         }
       );
-    supabase
-      .from("wards")
-      .select("id,county_id,sub_county_id:subcounty_id,name")
-      .order("name")
-      .then(
-        ({ data }) => {
-          const dbWards = (data as Ward[]) ?? [];
-          const allWards = [...dbWards];
-          STATIC_SUB_COUNTIES.forEach((sc) => {
-            const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
-            if (!hasWard) {
-              allWards.push({
-                id: 10000 + sc.id,
-                county_id: sc.county_id,
-                sub_county_id: sc.id,
-                name: sc.name,
-              });
-            }
-          });
-          setWards(allWards);
-        },
-        () => {
-          const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
+    // Load wards in pages (Supabase caps rows at 1000 per response)
+    (async () => {
+      const pageSize = 1000;
+      let from = 0;
+      const acc: Ward[] = [];
+      // Loop until we get a short page
+      // (1,450 wards total → 2 pages)
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        const { data, error } = await supabase
+          .from("wards")
+          .select("id,county_id,sub_county_id:subcounty_id,name")
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error || !data) break;
+        acc.push(...(data as Ward[]));
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      if (acc.length === 0) {
+        // Fallback to synthesised single-ward per subcounty
+        setWards(
+          STATIC_SUB_COUNTIES.map((sc) => ({
             id: 10000 + sc.id,
             county_id: sc.county_id,
             sub_county_id: sc.id,
             name: sc.name,
-          }));
-          setWards(fallbackWards);
-        }
-      );
+          })),
+        );
+      } else {
+        setWards(acc);
+      }
+    })();
 
     // Pre-fill location from profile
     supabase.auth.getUser().then(({ data }) => {
@@ -314,8 +319,38 @@ function SellPage() {
 
               {listingType === "service" && (
                 <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <Sel
+                      label="Skill Category"
+                      v={skillCategorySlug}
+                      on={(v) => {
+                        const slug = v as string;
+                        setSkillCategorySlug(slug);
+                        setSkillSpecialty("");
+                      }}
+                      opts={[
+                        { v: "", l: "Select skill category" },
+                        ...SKILL_CATEGORIES.map((c) => ({ v: c.slug, l: c.name })),
+                      ]}
+                    />
+                    <Sel
+                      label="Specialty"
+                      v={skillSpecialty}
+                      on={(v) => {
+                        const s = v as string;
+                        setSkillSpecialty(s);
+                        if (s) setJobTitle(s);
+                      }}
+                      opts={[
+                        { v: "", l: skillCategorySlug ? "Select specialty" : "— pick category first" },
+                        ...(SKILL_CATEGORIES.find((c) => c.slug === skillCategorySlug)?.specialties ?? []).map(
+                          (s) => ({ v: s, l: s }),
+                        ),
+                      ]}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <Field label="Job / Skill (e.g. Masonry, Tailoring, Plumbing)" v={jobTitle} on={setJobTitle} required />
+                    <Field label="Job / Skill Title (edit if needed)" v={jobTitle} on={setJobTitle} required />
                     <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS.map((o) => ({ v: o.v, l: o.l }))} />
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
