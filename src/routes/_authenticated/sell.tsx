@@ -319,8 +319,38 @@ function SellPage() {
 
               {listingType === "service" && (
                 <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <Sel
+                      label="Skill Category"
+                      v={skillCategorySlug}
+                      on={(v) => {
+                        const slug = v as string;
+                        setSkillCategorySlug(slug);
+                        setSkillSpecialty("");
+                      }}
+                      opts={[
+                        { v: "", l: "Select skill category" },
+                        ...SKILL_CATEGORIES.map((c) => ({ v: c.slug, l: c.name })),
+                      ]}
+                    />
+                    <Sel
+                      label="Specialty"
+                      v={skillSpecialty}
+                      on={(v) => {
+                        const s = v as string;
+                        setSkillSpecialty(s);
+                        if (s) setJobTitle(s);
+                      }}
+                      opts={[
+                        { v: "", l: skillCategorySlug ? "Select specialty" : "— pick category first" },
+                        ...(SKILL_CATEGORIES.find((c) => c.slug === skillCategorySlug)?.specialties ?? []).map(
+                          (s) => ({ v: s, l: s }),
+                        ),
+                      ]}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-2.5">
-                    <Field label="Job / Skill (e.g. Masonry, Tailoring, Plumbing)" v={jobTitle} on={setJobTitle} required />
+                    <Field label="Job / Skill Title (edit if needed)" v={jobTitle} on={setJobTitle} required />
                     <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS.map((o) => ({ v: o.v, l: o.l }))} />
                   </div>
                   <div className="grid grid-cols-2 gap-2.5">
