@@ -16,7 +16,6 @@ import {
   Package,
   HeartHandshake,
   TrendingUp,
-  Tag,
   ShoppingBag,
   Gift,
 } from "lucide-react";
