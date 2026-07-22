@@ -34,28 +34,29 @@ const CATEGORIES_MAPPING = [
   {
     name: "Home & Living",
     slug: "home-living",
-    desc: "Appliances, Kitchenware, Home Essentials",
+    desc: "Appliances, Kitchenware, Kitchen & Laundry, Electronics",
     img: catHome,
   },
   {
-    name: "Furniture",
-    slug: "furniture",
-    desc: "Tables, Sofas, Beds, Cabinets",
+    name: "Furniture & Clothing",
+    slug: "furniture-clothing",
+    desc: "Sofas, Beds, Cabinets, Clothing & Fashion",
     img: catFurniture,
   },
   {
-    name: "Construction",
-    slug: "construction",
-    desc: "Tools, Building Materials, Hardware",
+    name: "Machinery & Tools",
+    slug: "machinery-tools",
+    desc: "Farm Tools, Construction Materials, Spare Parts",
     img: catConstruction,
   },
   {
-    name: "Farm & Produce",
-    slug: "farm-produce",
-    desc: "Fresh Produce, Seeds, Agro Tools",
+    name: "Animal & Farm Produce",
+    slug: "animal-farm",
+    desc: "Live Animals, Fresh Produce, Seeds, Fertilizer",
     img: catFarm,
   },
 ];
+
 
 type Listing = {
   id: string;
