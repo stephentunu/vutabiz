@@ -28,6 +28,7 @@ const listingInput = z.object({
   landmark: z.string().max(120).optional().nullable(),
   donation_recipient: z.string().max(200).optional().nullable(),
   work_rate_type: z.enum(["hourly","weekly","monthly","agreed"]).optional().nullable(),
+  specialties: z.array(z.string().max(80)).default([]),
 });
 
 
