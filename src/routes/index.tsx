@@ -16,8 +16,8 @@ import {
   Package,
   HeartHandshake,
   TrendingUp,
-  Tag,
   ShoppingBag,
+  Gift,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
@@ -33,28 +33,29 @@ const CATEGORIES_MAPPING = [
   {
     name: "Home & Living",
     slug: "home-living",
-    desc: "Appliances, Kitchenware, Home Essentials",
+    desc: "Appliances, Kitchenware, Kitchen & Laundry, Electronics",
     img: catHome,
   },
   {
-    name: "Furniture",
-    slug: "furniture",
-    desc: "Tables, Sofas, Beds, Cabinets",
+    name: "Furniture & Clothing",
+    slug: "furniture-clothing",
+    desc: "Sofas, Beds, Cabinets, Clothing & Fashion",
     img: catFurniture,
   },
   {
-    name: "Construction",
-    slug: "construction",
-    desc: "Tools, Building Materials, Hardware",
+    name: "Machinery & Tools",
+    slug: "machinery-tools",
+    desc: "Farm Tools, Construction Materials, Spare Parts",
     img: catConstruction,
   },
   {
-    name: "Farm & Produce",
-    slug: "farm-produce",
-    desc: "Fresh Produce, Seeds, Agro Tools",
+    name: "Animal & Farm Produce",
+    slug: "animal-farm",
+    desc: "Live Animals, Fresh Produce, Seeds, Fertilizer",
     img: catFarm,
   },
 ];
+
 
 type Listing = {
   id: string;
@@ -170,14 +171,13 @@ function Home() {
               </p>
             </div>
 
-            {/* Sell / Buy quick actions */}
+            {/* Donation Hub / Buy quick actions */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Link
-                to="/auth"
-                search={{ next: "/sell" }}
+                to="/donations"
                 className="inline-flex items-center gap-1.5 rounded-full bg-accent text-primary-dark px-4 py-2 text-xs md:text-sm font-bold shadow hover:brightness-105 transition"
               >
-                <Tag className="h-3.5 w-3.5" /> Sell / Advertise
+                <Gift className="h-3.5 w-3.5" /> Donation Hub
               </Link>
               <Link
                 to="/browse"
