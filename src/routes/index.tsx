@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Tag,
   ShoppingBag,
+  Gift,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
