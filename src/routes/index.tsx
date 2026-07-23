@@ -17,7 +17,7 @@ import {
   HeartHandshake,
   TrendingUp,
   ShoppingBag,
-  Gift,
+  Tag,
 } from "lucide-react";
 
 import heroAppliances from "@/assets/hero-appliances.png";
@@ -174,10 +174,10 @@ function Home() {
             {/* Donation Hub / Buy quick actions */}
             <div className="flex flex-wrap items-center justify-between gap-2">
               <Link
-                to="/donations"
+                to="/sell"
                 className="inline-flex items-center gap-1.5 rounded-full bg-accent text-primary-dark px-4 py-2 text-xs md:text-sm font-bold shadow hover:brightness-105 transition"
               >
-                <Gift className="h-3.5 w-3.5" /> Donation Hub
+                <Tag className="h-3.5 w-3.5" /> Sell / Advertise
               </Link>
               <Link
                 to="/browse"
