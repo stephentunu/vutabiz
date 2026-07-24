@@ -81,7 +81,7 @@ export function Header() {
   const navLinks: { to: string; label: string; search?: Record<string, string> }[] = [
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
-    { to: "/browse", label: "Donation Hub", search: { listing_type: "donation" } },
+    { to: "/donations", label: "Donation Hub" },
     ...(email ? [{ to: "/dashboard", label: "Dashboard" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
