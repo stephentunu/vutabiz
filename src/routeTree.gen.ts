@@ -17,6 +17,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StoreUserIdRouteImport } from './routes/store.$userId'
 import { Route as ListingIdRouteImport } from './routes/listing.$id'
+import { Route as DonationsViewRouteImport } from './routes/donations.view'
 import { Route as AuthenticatedSellRouteImport } from './routes/_authenticated/sell'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -60,6 +61,11 @@ const ListingIdRoute = ListingIdRouteImport.update({
   path: '/listing/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DonationsViewRoute = DonationsViewRouteImport.update({
+  id: '/view',
+  path: '/view',
+  getParentRoute: () => DonationsRoute,
+} as any)
 const AuthenticatedSellRoute = AuthenticatedSellRouteImport.update({
   id: '/sell',
   path: '/sell',
@@ -80,11 +86,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
-  '/donations': typeof DonationsRoute
+  '/donations': typeof DonationsRouteWithChildren
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/sell': typeof AuthenticatedSellRoute
+  '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
   '/store/$userId': typeof StoreUserIdRoute
 }
@@ -92,11 +99,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
-  '/donations': typeof DonationsRoute
+  '/donations': typeof DonationsRouteWithChildren
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/sell': typeof AuthenticatedSellRoute
+  '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
   '/store/$userId': typeof StoreUserIdRoute
 }
@@ -106,11 +114,12 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
-  '/donations': typeof DonationsRoute
+  '/donations': typeof DonationsRouteWithChildren
   '/thank-you': typeof ThankYouRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/sell': typeof AuthenticatedSellRoute
+  '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
   '/store/$userId': typeof StoreUserIdRoute
 }
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/sell'
+    | '/donations/view'
     | '/listing/$id'
     | '/store/$userId'
   fileRoutesByTo: FileRoutesByTo
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/dashboard'
     | '/sell'
+    | '/donations/view'
     | '/listing/$id'
     | '/store/$userId'
   id:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
     | '/_authenticated/sell'
+    | '/donations/view'
     | '/listing/$id'
     | '/store/$userId'
   fileRoutesById: FileRoutesById
@@ -159,7 +171,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
-  DonationsRoute: typeof DonationsRoute
+  DonationsRoute: typeof DonationsRouteWithChildren
   ThankYouRoute: typeof ThankYouRoute
   ListingIdRoute: typeof ListingIdRoute
   StoreUserIdRoute: typeof StoreUserIdRoute
@@ -223,6 +235,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ListingIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/donations/view': {
+      id: '/donations/view'
+      path: '/view'
+      fullPath: '/donations/view'
+      preLoaderRoute: typeof DonationsViewRouteImport
+      parentRoute: typeof DonationsRoute
+    }
     '/_authenticated/sell': {
       id: '/_authenticated/sell'
       path: '/sell'
@@ -262,12 +281,24 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
+interface DonationsRouteChildren {
+  DonationsViewRoute: typeof DonationsViewRoute
+}
+
+const DonationsRouteChildren: DonationsRouteChildren = {
+  DonationsViewRoute: DonationsViewRoute,
+}
+
+const DonationsRouteWithChildren = DonationsRoute._addFileChildren(
+  DonationsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
-  DonationsRoute: DonationsRoute,
+  DonationsRoute: DonationsRouteWithChildren,
   ThankYouRoute: ThankYouRoute,
   ListingIdRoute: ListingIdRoute,
   StoreUserIdRoute: StoreUserIdRoute,
@@ -275,13 +306,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

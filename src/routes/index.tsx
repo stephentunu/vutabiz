@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { siteStats } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
+import { CategoryMegaDropdown } from "@/components/category-mega-dropdown";
 import {
   Search,
   MapPin,
@@ -25,6 +26,7 @@ import catHome from "@/assets/cat-home.jpg";
 import catFurniture from "@/assets/cat-furniture.jpg";
 import catConstruction from "@/assets/cat-construction.jpg";
 import catFarm from "@/assets/cat-farm.jpg";
+
 
 
 export const Route = createFileRoute("/")({ component: Home });
@@ -267,42 +269,48 @@ function Home() {
       </section>
 
 
-      {/* CATEGORIES */}
+      {/* CATEGORIES — nested dropdown */}
       <section className="mx-auto max-w-7xl w-full px-4 pt-6 pb-3">
-        <h2 className="text-lg font-extrabold text-primary-dark uppercase tracking-tight mb-3">
-          Browse by Category
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-extrabold text-primary-dark uppercase tracking-tight">
+            Browse by Category
+          </h2>
+          <p className="text-[11px] text-muted-foreground hidden md:block">
+            Click a category → sub-category → item
+          </p>
+        </div>
+        <CategoryMegaDropdown />
+      </section>
+
+      {/* Optional visual tiles kept for imagery */}
+      <section className="mx-auto max-w-7xl w-full px-4 pb-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {CATEGORIES_MAPPING.map((c) => (
-            <article
+            <Link
               key={c.name}
+              to="/browse"
+              search={{ category: c.slug }}
               className="group overflow-hidden rounded-xl bg-card ring-1 ring-black/5 shadow-sm hover:shadow-md transition"
             >
-              <div className="aspect-[16/10] overflow-hidden">
+              <div className="aspect-[16/8] overflow-hidden">
                 <img
                   src={c.img}
                   alt={c.name}
                   width={800}
-                  height={600}
+                  height={400}
                   loading="lazy"
-                  className="h-full w-full object-cover group-hover:scale-103 transition duration-300"
+                  className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
                 />
               </div>
-              <div className="p-3">
-                <h3 className="font-bold text-foreground text-sm">{c.name}</h3>
-                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-1">{c.desc}</p>
-                <Link
-                  to="/browse"
-                  search={{ category: c.slug }}
-                  className="mt-2 inline-flex items-center rounded-full bg-primary text-primary-foreground px-3 py-1 text-xs font-semibold hover:bg-primary-dark transition"
-                >
-                  Browse
-                </Link>
+              <div className="p-2.5">
+                <h3 className="font-bold text-foreground text-xs">{c.name}</h3>
+                <p className="mt-0.5 text-[11px] text-muted-foreground line-clamp-1">{c.desc}</p>
               </div>
-            </article>
+            </Link>
           ))}
         </div>
       </section>
+
 
       {/* FOR HIRE & SERVICES QUICK ACCESS */}
       <section className="mx-auto max-w-7xl w-full px-4 pb-4">
