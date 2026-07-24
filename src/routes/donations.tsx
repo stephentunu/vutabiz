@@ -2,140 +2,83 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/site-chrome";
-import { HeartHandshake, Gift, MapPin } from "lucide-react";
+import { HeartHandshake, Gift, Eye, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/donations")({
-  component: DonationHub,
+  component: DonationHubLanding,
   head: () => ({
     meta: [
-      { title: "Donation Hub — Vutabiz" },
-      { name: "description", content: "Donate excess items or find donations for needy families, children's homes, and communities across Kenya." },
-      { property: "og:title", content: "Donation Hub — Vutabiz" },
-      { property: "og:description", content: "Give and receive donations across Kenya. Support local families, schools, and children's homes." },
+      { title: "Donation Hub — Sokonyumbani" },
+      { name: "description", content: "Give and receive donations across Kenya. View available donations or donate excess items to needy families, children's homes, and communities." },
+      { property: "og:title", content: "Donation Hub — Sokonyumbani" },
+      { property: "og:description", content: "Give and receive donations across Kenya." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
 });
 
-type Donation = {
-  id: string;
-  title: string;
-  description: string | null;
-  image_url: string | null;
-  town: string | null;
-  landmark: string | null;
-  donation_recipient: string | null;
-  created_at: string;
-};
-
-function DonationHub() {
-  const [items, setItems] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
+function DonationHubLanding() {
   const [signedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setSignedIn(!!data.user));
-    supabase
-      .from("listings")
-      .select("id,title,description,image_url,town,landmark,donation_recipient,created_at")
-      .eq("listing_type", "donation")
-      .eq("status", "active")
-      .order("created_at", { ascending: false })
-      .limit(60)
-      .then(({ data }) => {
-        setItems((data as Donation[]) ?? []);
-        setLoading(false);
-      });
   }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <section className="bg-primary-dark text-white py-8">
-        <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-          <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wide">
-              <HeartHandshake className="h-3.5 w-3.5" /> Donation Hub
-            </div>
-            <h1 className="mt-2 text-2xl md:text-3xl font-extrabold uppercase tracking-tight">
-              Give what you can. Receive with dignity.
-            </h1>
-            <p className="mt-1 text-sm text-white/85 max-w-2xl">
-              Browse items being donated by well-wishers across Kenya — clothing, furniture, appliances, food, school supplies and more. Have excess items? Post a donation to help a needy family, children's home, or community.
-            </p>
+      <section className="bg-primary-dark text-white py-10">
+        <div className="mx-auto max-w-5xl px-4 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wide">
+            <HeartHandshake className="h-3.5 w-3.5" /> Donation Hub
           </div>
-          {signedIn ? (
-            <Link
-              to="/sell"
-              className="inline-flex items-center gap-2 rounded-full bg-accent text-primary-dark px-5 py-2.5 text-sm font-bold shadow hover:brightness-105"
-            >
-              <Gift className="h-4 w-4" /> Donate Now
-            </Link>
-          ) : (
-            <Link
-              to="/auth"
-              search={{ next: "/sell" }}
-              className="inline-flex items-center gap-2 rounded-full bg-accent text-primary-dark px-5 py-2.5 text-sm font-bold shadow hover:brightness-105"
-            >
-              <Gift className="h-4 w-4" /> Sign in to Donate
-            </Link>
-          )}
+          <h1 className="mt-3 text-3xl md:text-4xl font-extrabold uppercase tracking-tight">
+            Give what you can. Receive with dignity.
+          </h1>
+          <p className="mt-2 text-sm md:text-base text-white/85 max-w-2xl mx-auto">
+            Browse donations from well-wishers across Kenya, or donate excess items to needy families, children's homes and communities.
+          </p>
         </div>
       </section>
 
-      <main className="flex-1 mx-auto max-w-7xl w-full px-4 py-6">
-        <h2 className="text-base font-extrabold text-primary-dark uppercase tracking-tight mb-3">
-          Available Donations
-        </h2>
-        {loading ? (
-          <div className="text-center py-10 text-sm text-muted-foreground">Loading donations…</div>
-        ) : items.length === 0 ? (
-          <div className="rounded-xl bg-card ring-1 ring-black/5 p-8 text-center">
-            <HeartHandshake className="h-8 w-8 mx-auto text-primary/60" />
-            <p className="mt-2 text-sm text-muted-foreground">
-              No active donations yet. Be the first to donate!
+      <main className="flex-1 mx-auto max-w-5xl w-full px-4 py-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* View donations */}
+          <Link
+            to="/donations/view"
+            className="group rounded-2xl bg-card ring-1 ring-black/5 shadow-sm p-6 flex flex-col hover:shadow-lg transition"
+          >
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Eye className="h-7 w-7" />
+            </div>
+            <h2 className="mt-4 text-xl font-extrabold text-primary-dark">View Donations</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              See all donations available across categories and locations in Kenya. No sign-in required.
             </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {items.map((d) => (
-              <Link
-                key={d.id}
-                to="/listing/$id"
-                params={{ id: d.id }}
-                className="group rounded-xl bg-card ring-1 ring-black/5 overflow-hidden hover:shadow-md transition flex flex-col"
-              >
-                <div className="aspect-video bg-muted/30">
-                  {d.image_url ? (
-                    <img src={d.image_url} alt={d.title} className="h-full w-full object-cover group-hover:scale-105 transition" loading="lazy" />
-                  ) : (
-                    <div className="h-full w-full grid place-items-center text-xs text-muted-foreground">
-                      <HeartHandshake className="h-8 w-8 text-primary/40" />
-                    </div>
-                  )}
-                </div>
-                <div className="p-3 flex-1 flex flex-col">
-                  <h3 className="text-sm font-bold text-foreground line-clamp-2">{d.title}</h3>
-                  {d.description && (
-                    <p className="mt-1 text-xs text-muted-foreground line-clamp-2">{d.description}</p>
-                  )}
-                  {d.donation_recipient && (
-                    <div className="mt-2 text-[11px] text-primary-dark bg-accent/30 rounded-md px-2 py-1">
-                      <b>For:</b> {d.donation_recipient}
-                    </div>
-                  )}
-                  {(d.town || d.landmark) && (
-                    <div className="mt-auto pt-2 flex items-center gap-1 text-[11px] text-muted-foreground">
-                      <MapPin className="h-3 w-3" />
-                      <span className="truncate">{[d.town, d.landmark].filter(Boolean).join(" · ")}</span>
-                    </div>
-                  )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary group-hover:gap-2 transition-all">
+              Browse now <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+
+          {/* Donate */}
+          <Link
+            to={signedIn ? "/sell" : "/auth"}
+            search={signedIn ? undefined : ({ next: "/sell" } as never)}
+            className="group rounded-2xl bg-accent/40 ring-1 ring-primary/20 shadow-sm p-6 flex flex-col hover:shadow-lg transition"
+          >
+            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-white">
+              <Gift className="h-7 w-7" />
+            </div>
+            <h2 className="mt-4 text-xl font-extrabold text-primary-dark">Donate</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Post an item you'd like to donate. {signedIn ? "You're signed in — go ahead." : "Sign in or create an account first."}
+            </p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-primary-dark group-hover:gap-2 transition-all">
+              {signedIn ? "Donate an item" : "Sign in to donate"} <ArrowRight className="h-4 w-4" />
+            </span>
+          </Link>
+        </div>
       </main>
       <Footer />
     </div>
