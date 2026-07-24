@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeAdFee, createListing, payListingAd } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
+import { SKILL_CATEGORIES } from "@/lib/skills-data";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
@@ -47,6 +48,8 @@ const TYPES: { v: ListingType; l: string; desc: string }[] = [
   { v: "donation", l: "Donate", desc: "Give to someone in need" },
 ];
 
+const STEP_LABELS = ["Type & Details", "Location", "Delivery & Payment", "Review & Submit"];
+
 function SellPage() {
   const navigate = useNavigate();
   const compute = useServerFn(computeAdFee);
@@ -57,6 +60,9 @@ function SellPage() {
   const [counties, setCounties] = useState<County[]>([]);
   const [subCounties, setSubCounties] = useState<SubCounty[]>([]);
   const [wards, setWards] = useState<Ward[]>([]);
+
+  const [step, setStep] = useState<number>(1);
+  const [terms, setTerms] = useState<boolean>(false);
 
   const [listingType, setListingType] = useState<ListingType>("sale");
   const [title, setTitle] = useState("");
@@ -73,23 +79,19 @@ function SellPage() {
   const [risk, setRisk] = useState<"low" | "medium" | "high">("low");
   const [days, setDays] = useState<number>(7);
 
-  // Item-specific
   const [offersDelivery, setOffersDelivery] = useState(false);
   const [transport, setTransport] = useState("");
   const [payMethods, setPayMethods] = useState<string[]>(["M-Pesa"]);
 
-  // Service-specific
-  const [jobTitle, setJobTitle] = useState("");
   const [education, setEducation] = useState<string>("kcse");
   const [languagesText, setLanguagesText] = useState<string>("Swahili, English");
   const [experience, setExperience] = useState<number>(1);
   const [selfDesc, setSelfDesc] = useState("");
   const [workRateType, setWorkRateType] = useState<string>("hourly");
+  const [skillCategorySlug, setSkillCategorySlug] = useState<string>("");
+  const [specialties, setSpecialties] = useState<string[]>([]);
 
-  // Donation-specific
   const [donationRecipient, setDonationRecipient] = useState("");
-
-  // Location extra
   const [landmark, setLandmark] = useState("");
 
   const [fee, setFee] = useState<number | null>(null);
@@ -125,44 +127,34 @@ function SellPage() {
           setSubCounties(STATIC_SUB_COUNTIES as SubCounty[]);
         }
       );
-    supabase
-      .from("wards")
-      .select("id,county_id,sub_county_id:subcounty_id,name")
-      .order("name")
-      .then(
-        ({ data }) => {
-          const rows = (data as any[]) ?? [];
-          const dbWards = rows.map((r) => ({
-            id: r.id,
-            county_id: r.county_id,
-            sub_county_id: r.sub_county_id ?? r.subcounty_id ?? null,
-            name: r.name,
-          })) as Ward[];
-          // Use only DB-provided wards; don't synthesize from sub-counties.
-          setWards(dbWards);
-        },
-        () => {
-          setWards([]);
-        }
-      );
+    (async () => {
+      const pageSize = 1000;
+      let from = 0;
+      const acc: Ward[] = [];
+      while (true) {
+        const { data, error } = await supabase
+          .from("wards")
+          .select("id,county_id,sub_county_id:subcounty_id,name")
+          .order("name")
+          .range(from, from + pageSize - 1);
+        if (error || !data) break;
+        acc.push(...(data as Ward[]));
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      setWards(acc);
+    })();
 
-    // Pre-fill location from profile
     supabase.auth.getUser().then(({ data }) => {
       if (data.user)
-        supabase
-          .from("profiles")
-          .select("county_id,ward_id,town,phone")
-          .eq("id", data.user.id)
-          .maybeSingle()
-          .then(({ data: p }) => {
-            if (p) {
-              setCountyId(p.county_id ?? "");
-              
-              setWardId(p.ward_id ?? "");
-              setTown(p.town ?? "");
-              setContactPhone((p as { phone?: string | null }).phone ?? "");
-            }
-          });
+        supabase.from("profiles").select("county_id,ward_id,town,phone").eq("id", data.user.id).maybeSingle().then(({ data: p }) => {
+          if (p) {
+            setCountyId(p.county_id ?? "");
+            setWardId(p.ward_id ?? "");
+            setTown(p.town ?? "");
+            setContactPhone((p as { phone?: string | null }).phone ?? "");
+          }
+        });
     });
   }, []);
 
@@ -177,7 +169,6 @@ function SellPage() {
     return () => clearTimeout(t);
   }, [price, countyId, distance, risk, days, compute]);
 
-  // Derived filtered lists
   const subCountiesForCounty = subCounties.filter((sc) => sc.county_id === Number(countyId));
   const selectedSubCountyName = subCounties.find((sc) => sc.id === Number(subCountyId))?.name;
   const wardsForSubCounty = wards.filter(
@@ -190,9 +181,10 @@ function SellPage() {
       (!selectedSubCountyName ||
         w.name.trim().toLowerCase() !== selectedSubCountyName.trim().toLowerCase()),
   );
+  const activeSkillCategory = SKILL_CATEGORIES.find((c) => c.slug === skillCategorySlug);
 
-  const togglePay = (m: string) =>
-    setPayMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+  const togglePay = (m: string) => setPayMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+  const toggleSpecialty = (s: string) => setSpecialties((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   async function handleImageUpload(file: File) {
     const { data: u } = await supabase.auth.getUser();
@@ -213,14 +205,42 @@ function SellPage() {
     }
   }
 
+  // Validate the current step so users can't skip required fields
+  function validateStep(n: number): string | null {
+    if (n === 1) {
+      if (listingType === "service") {
+        if (!skillCategorySlug) return "Pick a skill category";
+        if (specialties.length === 0) return "Pick at least one specialty";
+        if (!title) return "Add a headline for your service";
+      } else {
+        if (!title) return "Add a title";
+        if (listingType !== "donation" && !price) return "Add a price";
+      }
+    }
+    if (n === 2) {
+      if (!countyId) return "Pick your county";
+      if (!contactPhone) return "Add a contact phone";
+    }
+    if (n === 3 && listingType === "donation" && !donationRecipient) return "Say who this donation is for";
+    return null;
+  }
+  function next() {
+    const err = validateStep(step);
+    if (err) { toast.error(err); return; }
+    setStep((s) => Math.min(4, s + 1));
+  }
+  function back() { setStep((s) => Math.max(1, s - 1)); }
+
   async function submitListing(e: React.FormEvent) {
     e.preventDefault();
+    if (!terms) { toast.error("Please accept the terms & conditions"); return; }
     setLoading(true);
     try {
       const finalPrice = listingType === "donation" ? 0 : price;
+      const jobTitle = listingType === "service" ? (title || specialties.join(", ")) : null;
       const res = await create({
         data: {
-          title,
+          title: listingType === "service" ? (title || specialties.join(", ")) : title,
           description: desc,
           price: finalPrice,
           category_id: categoryId ? Number(categoryId) : null,
@@ -238,11 +258,10 @@ function SellPage() {
           offers_delivery: listingType === "sale" || listingType === "hire" ? offersDelivery : false,
           transport_means: offersDelivery ? transport || null : null,
           payment_methods: listingType !== "donation" ? payMethods : [],
-          job_title: listingType === "service" ? jobTitle : null,
+          job_title: jobTitle,
+          specialties: listingType === "service" ? specialties : [],
           education_level: listingType === "service" ? (education as "none"|"kcpe"|"kcse"|"certificate"|"diploma"|"degree") : null,
-          languages: listingType === "service"
-            ? languagesText.split(",").map((s) => s.trim()).filter(Boolean)
-            : [],
+          languages: listingType === "service" ? languagesText.split(",").map((s) => s.trim()).filter(Boolean) : [],
           experience_years: listingType === "service" ? experience : null,
           self_description: listingType === "service" ? selfDesc : null,
           work_rate_type: listingType === "service" ? (workRateType as "hourly"|"weekly"|"monthly"|"agreed") : null,
@@ -252,7 +271,7 @@ function SellPage() {
       setCreatedId(res.id);
       setFee(res.ad_fee_ksh);
       if (listingType === "donation" || res.ad_fee_ksh === 0) {
-        toast.success("Posted! Thank you for donating.");
+        toast.success("Posted! Thank you.");
         navigate({ to: "/thank-you", search: { url: `/listing/${res.id}`, listing: res.id } });
         return;
       }
@@ -286,207 +305,241 @@ function SellPage() {
           <p className="text-xs text-muted-foreground mt-0.5">Reach thousands of Kenyans in your county.</p>
 
           {!createdId ? (
-            <form onSubmit={submitListing} className="mt-4 bg-card rounded-xl shadow ring-1 ring-black/5 p-4 space-y-3">
-              {/* Type selector */}
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">What are you posting?</div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
-                  {TYPES.map((t) => (
-                    <button
-                      type="button"
-                      key={t.v}
-                      onClick={() => setListingType(t.v)}
-                      className={`rounded-lg border p-2 text-left transition ${listingType === t.v ? "border-primary bg-primary/10" : "border-border bg-white hover:border-primary/50"}`}
-                    >
-                      <div className="text-xs font-bold">{t.l}</div>
-                      <div className="text-[10px] text-muted-foreground">{t.desc}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
+            <>
+              {/* Stepper */}
+              <ol className="mt-4 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide">
+                {STEP_LABELS.map((l, i) => {
+                  const n = i + 1;
+                  const done = n < step;
+                  const active = n === step;
+                  return (
+                    <li key={l} className="flex-1">
+                      <div className={`rounded-full px-2.5 py-1.5 text-center ring-1 ${active ? "bg-primary text-white ring-primary" : done ? "bg-primary/10 text-primary-dark ring-primary/30" : "bg-white text-muted-foreground ring-border"}`}>
+                        {n}. {l}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
 
-              <Field label={listingType === "service" ? "Service title (e.g. Reliable Mason in Kisumu)" : "Title"} v={title} on={setTitle} required />
+              <form onSubmit={submitListing} className="mt-3 bg-card rounded-xl shadow ring-1 ring-black/5 p-4 space-y-3">
+                {/* ── STEP 1 ─────────────────────────────────────────── */}
+                {step === 1 && (
+                  <>
+                    <div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">What are you posting?</div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
+                        {TYPES.map((t) => (
+                          <button
+                            type="button"
+                            key={t.v}
+                            onClick={() => { setListingType(t.v); setSpecialties([]); setSkillCategorySlug(""); }}
+                            className={`rounded-lg border p-2 text-left transition ${listingType === t.v ? "border-primary bg-primary/10" : "border-border bg-white hover:border-primary/50"}`}
+                          >
+                            <div className="text-xs font-bold">{t.l}</div>
+                            <div className="text-[10px] text-muted-foreground">{t.desc}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-              {listingType === "service" && (
-                <>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <Field label="Job / Skill (e.g. Masonry, Tailoring, Plumbing)" v={jobTitle} on={setJobTitle} required />
-                    <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS.map((o) => ({ v: o.v, l: o.l }))} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <NumField label="Years of Experience" v={experience} on={setExperience} />
-                    <NumField label={"Rate (KSh)"} v={price} on={setPrice} required />
-                  </div>
-                  <Sel
-                    label="Work Rate"
-                    v={workRateType}
-                    on={(v) => setWorkRateType(v as string)}
-                    opts={WORK_RATE_OPTIONS}
-                  />
-                  <Field
-                    label="Languages Spoken (comma separated, e.g. Swahili, English, Kikuyu)"
-                    v={languagesText}
-                    on={setLanguagesText}
-                  />
-                  <Field label="Brief Self Description (skills, past works)" v={selfDesc} on={setSelfDesc} textarea />
-                </>
-              )}
+                    {listingType === "service" ? (
+                      <>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <Sel
+                            label="Skill Category"
+                            v={skillCategorySlug}
+                            on={(v) => { setSkillCategorySlug(v as string); setSpecialties([]); }}
+                            opts={[{ v: "", l: "Select skill category" }, ...SKILL_CATEGORIES.map((c) => ({ v: c.slug, l: c.name }))]}
+                          />
+                          <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS} />
+                        </div>
 
-              {listingType !== "service" && (
-                <>
-                  <Field label="Description" v={desc} on={setDesc} textarea />
-                  <div className="grid grid-cols-2 gap-2.5">
-                    {listingType !== "donation" ? (
-                      <NumField label={listingType === "hire" ? "Rental price (KSh)" : "Price (KSh)"} v={price} on={setPrice} required />
+                        {activeSkillCategory && (
+                          <div>
+                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
+                              Specialties — pick one or more
+                            </div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {activeSkillCategory.specialties.map((s) => (
+                                <button
+                                  type="button"
+                                  key={s}
+                                  onClick={() => toggleSpecialty(s)}
+                                  className={`text-[11px] px-2.5 py-1 rounded-full border ${specialties.includes(s) ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
+                                >
+                                  {s}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        <Field
+                          label="Service Headline (e.g. Experienced Mason & Tiler — Kisumu)"
+                          v={title}
+                          on={setTitle}
+                          required
+                        />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <NumField label="Years of Experience" v={experience} on={setExperience} />
+                          <NumField label="Rate (KSh)" v={price} on={setPrice} required />
+                        </div>
+                        <Sel label="Work Rate" v={workRateType} on={(v) => setWorkRateType(v as string)} opts={WORK_RATE_OPTIONS} />
+                        <Field label="Languages Spoken (comma separated)" v={languagesText} on={setLanguagesText} />
+                        <Field label="Brief Self Description (skills, past works)" v={selfDesc} on={setSelfDesc} textarea />
+                      </>
                     ) : (
-                      <div className="rounded-lg bg-accent/20 px-3 py-2 text-xs text-accent-foreground/80 flex items-center">Donations are free — no price.</div>
+                      <>
+                        <Field label="Title" v={title} on={setTitle} required />
+                        <Field label="Description" v={desc} on={setDesc} textarea />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          {listingType !== "donation" ? (
+                            <NumField label={listingType === "hire" ? "Rental price (KSh)" : "Price (KSh)"} v={price} on={setPrice} required />
+                          ) : (
+                            <div className="rounded-lg bg-accent/20 px-3 py-2 text-xs text-accent-foreground/80 flex items-center">Donations are free — no price.</div>
+                          )}
+                          <Sel label="Category" v={categoryId} on={setCategoryId} opts={[{ v: "", l: "Select" }, ...cats.map((c) => ({ v: c.id, l: c.parent_id ? `— ${c.name}` : c.name }))]} />
+                        </div>
+                      </>
                     )}
-                    <Sel label="Category" v={categoryId} on={setCategoryId} opts={[{ v: "", l: "Select" }, ...cats.map((c) => ({ v: c.id, l: c.parent_id ? `— ${c.name}` : c.name }))]} />
-                  </div>
-                </>
-              )}
+                  </>
+                )}
 
-              {/* ── 3-tier location: County → Sub-County → Ward ── */}
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  Location
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                  <Sel
-                    label="County"
-                    v={countyId}
-                    on={(v) => {
-                      setCountyId(v);
-                      setSubCountyId("");
-                      setWardId("");
-                    }}
-                    opts={[{ v: "", l: "Select county" }, ...counties.map((c) => ({ v: c.id, l: c.name }))]}
-                  />
-                  <Sel
-                    label="Sub-County"
-                    v={subCountyId}
-                    on={(v) => {
-                      setSubCountyId(v);
-                      setWardId("");
-                    }}
-                    opts={[
-                      { v: "", l: countyId ? "Select sub-county" : "— pick county first" },
-                      ...subCountiesForCounty.map((sc) => ({ v: sc.id, l: sc.name })),
-                    ]}
-                  />
-                  <Sel
-                    label="Ward"
-                    v={wardId}
-                    on={setWardId}
-                    opts={[
-                      { v: "", l: subCountyId ? "Select ward" : "— pick sub-county first" },
-                      ...wardsForSubCounty.map((w) => ({ v: w.id, l: w.name })),
-                    ]}
-                  />
-                </div>
-              </div>
+                {/* ── STEP 2 ─────────────────────────────────────────── */}
+                {step === 2 && (
+                  <>
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Location</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <Sel label="County" v={countyId} on={(v) => { setCountyId(v); setSubCountyId(""); setWardId(""); }}
+                        opts={[{ v: "", l: "Select county" }, ...counties.map((c) => ({ v: c.id, l: c.name }))]} />
+                      <Sel label="Sub-County" v={subCountyId} on={(v) => { setSubCountyId(v); setWardId(""); }}
+                        opts={[{ v: "", l: countyId ? "Select sub-county" : "— pick county first" }, ...subCountiesForCounty.map((sc) => ({ v: sc.id, l: sc.name }))]} />
+                      <Sel label="Ward" v={wardId} on={setWardId}
+                        opts={[{ v: "", l: subCountyId ? "Select ward" : "— pick sub-county first" }, ...wardsForSubCounty.map((w) => ({ v: w.id, l: w.name }))]} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Field label="Town / Estate" v={town} on={setTown} />
+                      <Field label="Visible Landmark (e.g. Near KCB, Opposite Total)" v={landmark} on={setLandmark} />
+                    </div>
+                    <Field label="Contact Phone" v={contactPhone} on={setContactPhone} required />
+                    {listingType === "donation" && (
+                      <Field label="Donation Recipient (who/where — e.g. Nyumbani Children's Home)" v={donationRecipient} on={setDonationRecipient} required />
+                    )}
+                  </>
+                )}
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <Field label="Town / Estate" v={town} on={setTown} />
-                <Field label="Visible Landmark (e.g. Near KCB, Opposite Total)" v={landmark} on={setLandmark} />
-              </div>
+                {/* ── STEP 3 ─────────────────────────────────────────── */}
+                {step === 3 && (
+                  <>
+                    <div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Image {listingType === "service" ? "(optional)" : ""}</div>
+                      <div className="flex items-center gap-2.5">
+                        <input type="file" accept="image/*" disabled={uploading}
+                          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f); }}
+                          className="text-xs" />
+                        {uploading && <span className="text-xs text-muted-foreground">Uploading…</span>}
+                        {imageUrl && !uploading && (
+                          <img src={imageUrl} alt="preview" className="h-12 w-12 rounded object-cover ring-1 ring-black/10" />
+                        )}
+                      </div>
+                    </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                <Field label="Contact Phone" v={contactPhone} on={setContactPhone} required />
-              </div>
+                    {(listingType === "sale" || listingType === "hire") && (
+                      <div className="pt-2 border-t border-border space-y-2.5">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Delivery</div>
+                        <label className="flex items-center gap-2 text-xs">
+                          <input type="checkbox" checked={offersDelivery} onChange={(e) => setOffersDelivery(e.target.checked)} />
+                          I offer delivery for this {listingType === "hire" ? "hire" : "item"}
+                        </label>
+                        {offersDelivery && (
+                          <Field label="Means of Transport / Courier (e.g. Boda Boda, Pickup, Sendy)" v={transport} on={setTransport} />
+                        )}
+                      </div>
+                    )}
 
-              {listingType === "donation" && (
-                <Field
-                  label="Donation Recipient (who/where — e.g. Nyumbani Children's Home, Kibera families)"
-                  v={donationRecipient}
-                  on={setDonationRecipient}
-                  required
-                />
-              )}
+                    {listingType !== "donation" && (
+                      <div className="pt-2 border-t border-border">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Modes of Payment Accepted</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {PAYMENT_OPTIONS.map((p) => (
+                            <button type="button" key={p} onClick={() => togglePay(p)}
+                              className={`text-[11px] px-2.5 py-1 rounded-full border ${payMethods.includes(p) ? "bg-primary text-white border-primary" : "bg-white border-border"}`}>{p}</button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
-              <div>
-                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                  Image {listingType === "service" ? "(optional)" : ""}
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={uploading}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) handleImageUpload(f);
-                    }}
-                    className="text-xs"
-                  />
-                  {uploading && <span className="text-xs text-muted-foreground">Uploading…</span>}
-                  {imageUrl && !uploading && (
-                    <img src={imageUrl} alt="preview" className="h-12 w-12 rounded object-cover ring-1 ring-black/10" />
+                    {listingType !== "donation" && (
+                      <div className="pt-2 border-t border-border">
+                        <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Ad settings</div>
+                        <div className="grid grid-cols-3 gap-2.5">
+                          <NumField label="Distance (km)" v={distance} on={setDistance} />
+                          <Sel label="Risk" v={risk} on={(v) => setRisk(v as "low" | "medium" | "high")}
+                            opts={[{ v: "low", l: "Low" }, { v: "medium", l: "Medium" }, { v: "high", l: "High" }]} />
+                          <NumField label="Duration (days)" v={days} on={setDays} />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* ── STEP 4 ─────────────────────────────────────────── */}
+                {step === 4 && (
+                  <>
+                    <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Review</div>
+                    <dl className="text-xs bg-muted/30 rounded-lg p-3 grid grid-cols-2 gap-y-1.5 gap-x-3">
+                      <dt className="text-muted-foreground">Type</dt><dd className="font-semibold capitalize">{listingType}</dd>
+                      <dt className="text-muted-foreground">Title</dt><dd className="font-semibold truncate">{title || (specialties.join(", ") || "—")}</dd>
+                      {listingType !== "donation" && (<><dt className="text-muted-foreground">Price</dt><dd className="font-semibold">KSh {price.toLocaleString()}</dd></>)}
+                      <dt className="text-muted-foreground">County</dt><dd className="font-semibold">{counties.find((c) => c.id === Number(countyId))?.name || "—"}</dd>
+                      <dt className="text-muted-foreground">Contact</dt><dd className="font-semibold">{contactPhone || "—"}</dd>
+                      {listingType === "service" && (
+                        <><dt className="text-muted-foreground">Specialties</dt><dd className="font-semibold">{specialties.join(", ") || "—"}</dd></>
+                      )}
+                      {listingType === "donation" && (
+                        <><dt className="text-muted-foreground">Recipient</dt><dd className="font-semibold">{donationRecipient || "—"}</dd></>
+                      )}
+                    </dl>
+
+                    {listingType !== "donation" && (
+                      <div className="flex items-center justify-between rounded-lg bg-accent/40 px-3 py-2">
+                        <div className="text-xs">Estimated ad fee</div>
+                        <div className="text-lg font-extrabold text-primary-dark">KSh {fee ?? "—"}</div>
+                      </div>
+                    )}
+
+                    <label className="flex items-start gap-2 text-xs bg-white ring-1 ring-border rounded-lg p-3">
+                      <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5" />
+                      <span className="text-muted-foreground">
+                        I confirm the information above is accurate, the item/service is lawful, and I accept the Vutabiz{" "}
+                        <a href="#" className="text-primary underline">terms &amp; conditions</a> and community guidelines.
+                      </span>
+                    </label>
+                  </>
+                )}
+
+                {/* Nav */}
+                <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                  <button type="button" onClick={back} disabled={step === 1}
+                    className="inline-flex items-center gap-1 rounded-lg bg-white border border-border px-3 py-2 text-xs font-semibold disabled:opacity-40">
+                    <ChevronLeft className="h-3.5 w-3.5" /> Back
+                  </button>
+                  <div className="text-[10px] text-muted-foreground">Step {step} of {STEP_LABELS.length}</div>
+                  {step < 4 ? (
+                    <button type="button" onClick={next}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary-dark hover:bg-primary text-white px-4 py-2 text-xs font-bold">
+                      Next <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button disabled={loading || !terms}
+                      className="inline-flex items-center gap-1 rounded-lg bg-primary-dark hover:bg-primary text-white px-4 py-2 text-xs font-bold disabled:opacity-60">
+                      {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />} {listingType === "donation" ? "Post Donation" : "Submit Listing"}
+                    </button>
                   )}
                 </div>
-              </div>
-
-              {(listingType === "sale" || listingType === "hire") && (
-                <div className="pt-2 border-t border-border space-y-2.5">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Delivery</div>
-                  <label className="flex items-center gap-2 text-xs">
-                    <input type="checkbox" checked={offersDelivery} onChange={(e) => setOffersDelivery(e.target.checked)} />
-                    I offer delivery for this {listingType === "hire" ? "hire" : "item"}
-                  </label>
-                  {offersDelivery && (
-                    <Field
-                      label="Means of Transport / Courier (e.g. Boda Boda, Pickup, G4S Courier, Sendy)"
-                      v={transport}
-                      on={setTransport}
-                    />
-                  )}
-                </div>
-              )}
-
-              {listingType !== "donation" && (
-                <div className="pt-2 border-t border-border">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">Modes of Payment Accepted</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {PAYMENT_OPTIONS.map((p) => (
-                      <button type="button" key={p} onClick={() => togglePay(p)} className={`text-[11px] px-2.5 py-1 rounded-full border ${payMethods.includes(p) ? "bg-primary text-white border-primary" : "bg-white border-border"}`}>{p}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {listingType !== "donation" && (
-                <div className="pt-2 border-t border-border">
-                  <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                    Ad settings
-                  </div>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    <NumField label="Distance (km)" v={distance} on={setDistance} />
-                    <Sel
-                      label="Risk"
-                      v={risk}
-                      on={(v) => setRisk(v as "low" | "medium" | "high")}
-                      opts={[
-                        { v: "low", l: "Low" },
-                        { v: "medium", l: "Medium" },
-                        { v: "high", l: "High" },
-                      ]}
-                    />
-                    <NumField label="Duration (days)" v={days} on={setDays} />
-                  </div>
-                </div>
-              )}
-
-              {listingType !== "donation" && (
-                <div className="flex items-center justify-between rounded-lg bg-accent/40 px-3 py-2">
-                  <div className="text-xs">Estimated ad fee</div>
-                  <div className="text-lg font-extrabold text-primary-dark">KSh {fee ?? "—"}</div>
-                </div>
-              )}
-
-              <button disabled={loading} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-primary-dark hover:bg-primary text-white px-4 py-2.5 text-sm font-bold disabled:opacity-60">
-                {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />} {listingType === "donation" ? "Post donation" : "Create listing"}
-              </button>
-            </form>
+              </form>
+            </>
           ) : (
             <div className="mt-4 bg-card rounded-xl shadow ring-1 ring-black/5 p-4">
               <div className="flex items-center gap-2 text-primary-dark">
@@ -497,8 +550,10 @@ function SellPage() {
                 Pay <b>KSh {fee}</b> via M-Pesa Paybill <b>247247</b>, Account <b>{createdId.slice(0, 8)}</b>, then paste the M-Pesa code below.
               </p>
               <div className="mt-3 flex gap-2">
-                <input value={mpesa} onChange={(e) => setMpesa(e.target.value.toUpperCase())} placeholder="e.g. QK7XX8Y9ZA" className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary" />
-                <button disabled={loading || !mpesa} onClick={payAd} className="rounded-lg bg-primary-dark text-white px-4 py-2 text-sm font-bold disabled:opacity-60">Confirm payment</button>
+                <input value={mpesa} onChange={(e) => setMpesa(e.target.value.toUpperCase())} placeholder="e.g. QK7XX8Y9ZA"
+                  className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary" />
+                <button disabled={loading || !mpesa} onClick={payAd}
+                  className="rounded-lg bg-primary-dark text-white px-4 py-2 text-sm font-bold disabled:opacity-60">Confirm payment</button>
               </div>
               <Link to="/dashboard" className="mt-3 inline-block text-xs text-primary underline">Skip for now</Link>
             </div>

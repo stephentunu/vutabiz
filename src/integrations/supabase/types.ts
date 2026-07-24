@@ -91,6 +91,7 @@ export type Database = {
           risk: Database["public"]["Enums"]["risk_level"]
           self_description: string | null
           seller_id: string
+          specialties: string[]
           status: Database["public"]["Enums"]["listing_status"]
           subcounty_id: number | null
           title: string
@@ -128,6 +129,7 @@ export type Database = {
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id: string
+          specialties?: string[]
           status?: Database["public"]["Enums"]["listing_status"]
           subcounty_id?: number | null
           title: string
@@ -165,6 +167,7 @@ export type Database = {
           risk?: Database["public"]["Enums"]["risk_level"]
           self_description?: string | null
           seller_id?: string
+          specialties?: string[]
           status?: Database["public"]["Enums"]["listing_status"]
           subcounty_id?: number | null
           title?: string
