@@ -288,8 +288,16 @@ export const adminStats = createServerFn({ method: "GET" })
 // Public site statistics for the homepage. No auth required.
 export const siteStats = createServerFn({ method: "GET" }).handler(async () => {
   const { createClient } = await import("@supabase/supabase-js");
-  const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-  const url = process.env.SUPABASE_URL!;
+  const key =
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    process.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+    (typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.SUPABASE_PUBLISHABLE_KEY : "") ||
+    "";
+  const url =
+    process.env.SUPABASE_URL ||
+    process.env.VITE_SUPABASE_URL ||
+    (typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL : "") ||
+    "";
   const sb = createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
     global: {
