@@ -158,7 +158,17 @@ function Browse() {
       .from("wards")
       .select("id,county_id,sub_county_id:subcounty_id,name")
       .order("name")
-      .then(({ data }) => setWards((data as Ward[]) ?? []));
+      .then(({ data }) => {
+        const rows = (data as any[]) ?? [];
+        const normalized = rows.map((r) => ({
+          id: r.id,
+          county_id: r.county_id,
+          // prefer explicit sub_county_id, fall back to subcounty_id if present
+          sub_county_id: r.sub_county_id ?? r.subcounty_id ?? null,
+          name: r.name,
+        })) as Ward[];
+        setWards(normalized);
+      });
   }, []);
 
 
@@ -947,7 +957,16 @@ function LocationDrilldown({
           <button onClick={() => onPick({ subcounty: undefined, ward: undefined })} className="text-[11px] text-muted-foreground mb-2">← Change subcounty</button>
           <div className="text-xs font-semibold mb-1.5">Pick a ward</div>
           <div className="flex flex-wrap gap-1.5">
-            {wards.filter((w) => w.sub_county_id === subcounty).map((w) => (
+            {wards
+              .filter((w) => w.sub_county_id === subcounty)
+              .filter((w) => {
+                // Some historical seed data created a placeholder "ward" whose
+                // name just duplicates its parent sub-county's name — hide
+                // those so only genuine wards show up here.
+                const scName = subcounties.find((s) => s.id === subcounty)?.name;
+                return !scName || w.name.trim().toLowerCase() !== scName.trim().toLowerCase();
+              })
+              .map((w) => (
               <button key={w.id} onClick={() => onPick({ ward: w.id })} className="text-xs px-2.5 py-1 rounded-full bg-white border border-border hover:border-primary hover:text-primary">
                 {w.name}
               </button>

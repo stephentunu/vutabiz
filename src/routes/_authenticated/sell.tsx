@@ -131,29 +131,18 @@ function SellPage() {
       .order("name")
       .then(
         ({ data }) => {
-          const dbWards = (data as Ward[]) ?? [];
-          const allWards = [...dbWards];
-          STATIC_SUB_COUNTIES.forEach((sc) => {
-            const hasWard = allWards.some((w) => w.sub_county_id === sc.id);
-            if (!hasWard) {
-              allWards.push({
-                id: 10000 + sc.id,
-                county_id: sc.county_id,
-                sub_county_id: sc.id,
-                name: sc.name,
-              });
-            }
-          });
-          setWards(allWards);
+          const rows = (data as any[]) ?? [];
+          const dbWards = rows.map((r) => ({
+            id: r.id,
+            county_id: r.county_id,
+            sub_county_id: r.sub_county_id ?? r.subcounty_id ?? null,
+            name: r.name,
+          })) as Ward[];
+          // Use only DB-provided wards; don't synthesize from sub-counties.
+          setWards(dbWards);
         },
         () => {
-          const fallbackWards = STATIC_SUB_COUNTIES.map((sc) => ({
-            id: 10000 + sc.id,
-            county_id: sc.county_id,
-            sub_county_id: sc.id,
-            name: sc.name,
-          }));
-          setWards(fallbackWards);
+          setWards([]);
         }
       );
 
@@ -190,10 +179,16 @@ function SellPage() {
 
   // Derived filtered lists
   const subCountiesForCounty = subCounties.filter((sc) => sc.county_id === Number(countyId));
+  const selectedSubCountyName = subCounties.find((sc) => sc.id === Number(subCountyId))?.name;
   const wardsForSubCounty = wards.filter(
     (w) =>
       w.county_id === Number(countyId) &&
-      (subCountyId ? w.sub_county_id === Number(subCountyId) : true),
+      (subCountyId ? w.sub_county_id === Number(subCountyId) : true) &&
+      // Some historical seed data created a placeholder "ward" whose name just
+      // duplicates its parent sub-county's name — hide those so only genuine
+      // wards show up in the dropdown.
+      (!selectedSubCountyName ||
+        w.name.trim().toLowerCase() !== selectedSubCountyName.trim().toLowerCase()),
   );
 
   const togglePay = (m: string) =>
