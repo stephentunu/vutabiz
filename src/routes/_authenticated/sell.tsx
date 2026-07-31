@@ -8,10 +8,11 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 import { SKILL_CATEGORIES } from "@/lib/skills-data";
+import { CATEGORY_TREE } from "@/lib/category-tree";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
-type Cat = { id: number; name: string; parent_id: number | null };
+type Cat = { id: number; name: string; parent_id: number | null; slug: string };
 type County = { id: number; name: string };
 type SubCounty = { id: number; county_id: number; name: string };
 type Ward = { id: number; county_id: number; sub_county_id: number | null; name: string };
@@ -69,6 +70,12 @@ function SellPage() {
   const [desc, setDesc] = useState("");
   const [price, setPrice] = useState<number>(1000);
   const [categoryId, setCategoryId] = useState<number | "">("");
+  // Cascading category picker for sale/hire/donation ads — Category → Sub-category → Item,
+  // exactly mirroring the Buy/Hire (Browse) page's category tree. The chosen item becomes
+  // the ad title, the same way Jiji derives a listing's title from its category path.
+  const [groupSlug, setGroupSlug] = useState<string>("");
+  const [subCategorySlug, setSubCategorySlug] = useState<string>("");
+  const [itemLabel, setItemLabel] = useState<string>("");
   const [countyId, setCountyId] = useState<number | "">("");
   const [subCountyId, setSubCountyId] = useState<number | "">("");
   const [wardId, setWardId] = useState<number | "">("");
@@ -89,6 +96,9 @@ function SellPage() {
   const [selfDesc, setSelfDesc] = useState("");
   const [workRateType, setWorkRateType] = useState<string>("hourly");
   const [skillCategorySlug, setSkillCategorySlug] = useState<string>("");
+  // Cascading: Skill Category → Specialty. The chosen specialty becomes the
+  // service's title, the same way an item's title comes from its last category.
+  const [specialty, setSpecialty] = useState<string>("");
   const [specialties, setSpecialties] = useState<string[]>([]);
 
   const [donationRecipient, setDonationRecipient] = useState("");
@@ -103,7 +113,7 @@ function SellPage() {
   useEffect(() => {
     supabase
       .from("categories")
-      .select("id,name,parent_id")
+      .select("id,name,parent_id,slug")
       .order("name")
       .then(({ data }) => setCats((data as Cat[]) ?? []));
     supabase
@@ -183,8 +193,31 @@ function SellPage() {
   );
   const activeSkillCategory = SKILL_CATEGORIES.find((c) => c.slug === skillCategorySlug);
 
+  // Cascading item category picker (Category → Sub-category → Item), matching
+  // the CATEGORY_TREE used by the Buy/Hire page's own category browser.
+  const catBySlug = new Map(cats.map((c) => [c.slug, c] as const));
+  const selectedGroup = CATEGORY_TREE.find((g) => g.slug === groupSlug);
+  const selectedSubCategory = selectedGroup?.children.find((c) => c.slug === subCategorySlug);
+
+  // Keep the derived title and the real DB category_id (used for filtering on
+  // /browse) in sync whenever the cascade selection changes.
+  useEffect(() => {
+    if (listingType === "service") return;
+    if (itemLabel) setTitle(itemLabel);
+    const dbCat = subCategorySlug ? catBySlug.get(subCategorySlug) : groupSlug ? catBySlug.get(groupSlug) : undefined;
+    setCategoryId(dbCat ? dbCat.id : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [itemLabel, subCategorySlug, groupSlug, cats, listingType]);
+
+  useEffect(() => {
+    if (listingType !== "service") return;
+    if (specialty) { setTitle(specialty); setSpecialties([specialty]); }
+    const dbCat = skillCategorySlug ? catBySlug.get(skillCategorySlug) : undefined;
+    setCategoryId(dbCat ? dbCat.id : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [specialty, skillCategorySlug, cats, listingType]);
+
   const togglePay = (m: string) => setPayMethods((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
-  const toggleSpecialty = (s: string) => setSpecialties((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   async function handleImageUpload(file: File) {
     const { data: u } = await supabase.auth.getUser();
@@ -210,10 +243,11 @@ function SellPage() {
     if (n === 1) {
       if (listingType === "service") {
         if (!skillCategorySlug) return "Pick a skill category";
-        if (specialties.length === 0) return "Pick at least one specialty";
-        if (!title) return "Add a headline for your service";
+        if (!specialty) return "Pick a specialty";
       } else {
-        if (!title) return "Add a title";
+        if (!groupSlug) return "Pick a category";
+        if (!subCategorySlug) return "Pick a sub-category";
+        if (!itemLabel) return "Pick the item that best describes your ad";
         if (listingType !== "donation" && !price) return "Add a price";
       }
     }
@@ -237,10 +271,10 @@ function SellPage() {
     setLoading(true);
     try {
       const finalPrice = listingType === "donation" ? 0 : price;
-      const jobTitle = listingType === "service" ? (title || specialties.join(", ")) : null;
+      const jobTitle = listingType === "service" ? title : null;
       const res = await create({
         data: {
-          title: listingType === "service" ? (title || specialties.join(", ")) : title,
+          title,
           description: desc,
           price: finalPrice,
           category_id: categoryId ? Number(categoryId) : null,
@@ -333,7 +367,17 @@ function SellPage() {
                           <button
                             type="button"
                             key={t.v}
-                            onClick={() => { setListingType(t.v); setSpecialties([]); setSkillCategorySlug(""); }}
+                            onClick={() => {
+                              setListingType(t.v);
+                              setSpecialties([]);
+                              setSpecialty("");
+                              setSkillCategorySlug("");
+                              setGroupSlug("");
+                              setSubCategorySlug("");
+                              setItemLabel("");
+                              setCategoryId("");
+                              setTitle("");
+                            }}
                             className={`rounded-lg border p-2 text-left transition ${listingType === t.v ? "border-primary bg-primary/10" : "border-border bg-white hover:border-primary/50"}`}
                           >
                             <div className="text-xs font-bold">{t.l}</div>
@@ -349,58 +393,80 @@ function SellPage() {
                           <Sel
                             label="Skill Category"
                             v={skillCategorySlug}
-                            on={(v) => { setSkillCategorySlug(v as string); setSpecialties([]); }}
+                            on={(v) => { setSkillCategorySlug(v as string); setSpecialty(""); }}
                             opts={[{ v: "", l: "Select skill category" }, ...SKILL_CATEGORIES.map((c) => ({ v: c.slug, l: c.name }))]}
                           />
-                          <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS} />
+                          <Sel
+                            label="Specialty"
+                            v={specialty}
+                            on={(v) => setSpecialty(v as string)}
+                            opts={[
+                              { v: "", l: activeSkillCategory ? "Select specialty" : "— pick a skill category first" },
+                              ...(activeSkillCategory?.specialties.map((s) => ({ v: s, l: s })) ?? []),
+                            ]}
+                          />
                         </div>
 
-                        {activeSkillCategory && (
-                          <div>
-                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1.5">
-                              Specialties — pick one or more
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {activeSkillCategory.specialties.map((s) => (
-                                <button
-                                  type="button"
-                                  key={s}
-                                  onClick={() => toggleSpecialty(s)}
-                                  className={`text-[11px] px-2.5 py-1 rounded-full border ${specialties.includes(s) ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
-                                >
-                                  {s}
-                                </button>
-                              ))}
-                            </div>
+                        {specialty && (
+                          <div className="rounded-lg bg-accent/30 ring-1 ring-primary/20 px-3 py-2 text-xs">
+                            <span className="text-muted-foreground">Ad title (from your category): </span>
+                            <span className="font-bold text-primary-dark">{specialty}</span>
                           </div>
                         )}
 
-                        <Field
-                          label="Service Headline (e.g. Experienced Mason & Tiler — Kisumu)"
-                          v={title}
-                          on={setTitle}
-                          required
-                        />
-                        <div className="grid grid-cols-2 gap-2.5">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          <Sel label="Minimum Education" v={education} on={(v) => setEducation(v as string)} opts={EDU_OPTIONS} />
                           <NumField label="Years of Experience" v={experience} on={setExperience} />
-                          <NumField label="Rate (KSh)" v={price} on={setPrice} required />
                         </div>
-                        <Sel label="Work Rate" v={workRateType} on={(v) => setWorkRateType(v as string)} opts={WORK_RATE_OPTIONS} />
+                        <div className="grid grid-cols-2 gap-2.5">
+                          <NumField label="Rate (KSh)" v={price} on={setPrice} required />
+                          <Sel label="Work Rate" v={workRateType} on={(v) => setWorkRateType(v as string)} opts={WORK_RATE_OPTIONS} />
+                        </div>
                         <Field label="Languages Spoken (comma separated)" v={languagesText} on={setLanguagesText} />
                         <Field label="Brief Self Description (skills, past works)" v={selfDesc} on={setSelfDesc} textarea />
                       </>
                     ) : (
                       <>
-                        <Field label="Title" v={title} on={setTitle} required />
-                        <Field label="Description" v={desc} on={setDesc} textarea />
-                        <div className="grid grid-cols-2 gap-2.5">
-                          {listingType !== "donation" ? (
-                            <NumField label={listingType === "hire" ? "Rental price (KSh)" : "Price (KSh)"} v={price} on={setPrice} required />
-                          ) : (
-                            <div className="rounded-lg bg-accent/20 px-3 py-2 text-xs text-accent-foreground/80 flex items-center">Donations are free — no price.</div>
-                          )}
-                          <Sel label="Category" v={categoryId} on={setCategoryId} opts={[{ v: "", l: "Select" }, ...cats.map((c) => ({ v: c.id, l: c.parent_id ? `— ${c.name}` : c.name }))]} />
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                          <Sel
+                            label="Category"
+                            v={groupSlug}
+                            on={(v) => { setGroupSlug(v as string); setSubCategorySlug(""); setItemLabel(""); }}
+                            opts={[{ v: "", l: "Select category" }, ...CATEGORY_TREE.map((g) => ({ v: g.slug, l: g.name }))]}
+                          />
+                          <Sel
+                            label="Sub-category"
+                            v={subCategorySlug}
+                            on={(v) => { setSubCategorySlug(v as string); setItemLabel(""); }}
+                            opts={[
+                              { v: "", l: selectedGroup ? "Select sub-category" : "— pick a category first" },
+                              ...(selectedGroup?.children.map((c) => ({ v: c.slug, l: c.name })) ?? []),
+                            ]}
+                          />
+                          <Sel
+                            label="Item"
+                            v={itemLabel}
+                            on={(v) => setItemLabel(v as string)}
+                            opts={[
+                              { v: "", l: selectedSubCategory ? "Select item" : "— pick a sub-category first" },
+                              ...(selectedSubCategory?.items.map((i) => ({ v: i, l: i })) ?? []),
+                            ]}
+                          />
                         </div>
+
+                        {itemLabel && (
+                          <div className="rounded-lg bg-accent/30 ring-1 ring-primary/20 px-3 py-2 text-xs">
+                            <span className="text-muted-foreground">Ad title (from your category): </span>
+                            <span className="font-bold text-primary-dark">{itemLabel}</span>
+                          </div>
+                        )}
+
+                        <Field label="Description" v={desc} on={setDesc} textarea />
+                        {listingType !== "donation" ? (
+                          <NumField label={listingType === "hire" ? "Rental price (KSh)" : "Price (KSh)"} v={price} on={setPrice} required />
+                        ) : (
+                          <div className="rounded-lg bg-accent/20 px-3 py-2 text-xs text-accent-foreground/80">Donations are free — no price.</div>
+                        )}
                       </>
                     )}
                   </>
