@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Tag,
   HeartHandshake,
+  Store,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -102,13 +103,23 @@ export function Header() {
 
         {/* Desktop actions */}
         <div className="hidden lg:flex items-center gap-2">
+          {/* Explore Market — always public, no sign in required */}
+          <Link
+            to="/browse"
+            title="Browse all posted items — no sign in required"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white px-4 py-2 text-sm font-semibold transition"
+          >
+            <Store className="h-3.5 w-3.5" /> Explore Market
+          </Link>
+
           {email ? (
             <>
               <Link
                 to="/sell"
+                title="Post an item to the market"
                 className="inline-flex items-center gap-1.5 rounded-full bg-white text-primary px-4 py-2 text-sm font-semibold shadow-sm hover:shadow-md transition"
               >
-                <Tag className="h-3.5 w-3.5" /> Post Ad
+                <Tag className="h-3.5 w-3.5" /> Post an Item
               </Link>
               <button
                 onClick={signOut}
@@ -123,13 +134,16 @@ export function Header() {
             <>
               <Link
                 to="/auth"
+                search={{ next: "/sell" }}
+                title="Sign in or create an account to post an item"
                 className="inline-flex items-center gap-1.5 rounded-full bg-white text-primary px-4 py-2 text-sm font-semibold shadow-sm hover:shadow-md transition"
               >
-                Sell
+                <Tag className="h-3.5 w-3.5" /> Post an Item
               </Link>
               <Link
                 to="/auth"
                 aria-label="Sign in"
+                title="Sign in"
                 className="grid h-9 w-9 place-items-center rounded-full bg-white/10 hover:bg-white/20 transition"
               >
                 <User className="h-4 w-4" />
@@ -168,6 +182,15 @@ export function Header() {
             </Link>
           ))}
           <div className="border-t border-white/10 pt-3 mt-3 space-y-2">
+            {/* Explore Market — always public, no sign in required */}
+            <Link
+              to="/browse"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-center gap-2 w-full rounded-xl bg-white/10 text-white py-2.5 text-sm font-semibold"
+            >
+              <Store className="h-4 w-4" /> Explore Market
+            </Link>
+
             {email ? (
               <>
                 <Link
@@ -175,7 +198,7 @@ export function Header() {
                   onClick={() => setMobileOpen(false)}
                   className="flex items-center justify-center gap-2 w-full rounded-xl bg-white text-primary py-2.5 text-sm font-bold"
                 >
-                  <Tag className="h-4 w-4" /> Post an Ad
+                  <Tag className="h-4 w-4" /> Post an Item
                 </Link>
                 <button
                   onClick={() => { signOut(); setMobileOpen(false); }}
@@ -185,13 +208,23 @@ export function Header() {
                 </button>
               </>
             ) : (
-              <Link
-                to="/auth"
-                onClick={() => setMobileOpen(false)}
-                className="flex items-center justify-center gap-2 w-full rounded-xl bg-white text-primary py-2.5 text-sm font-bold"
-              >
-                <User className="h-4 w-4" /> Sign In / Register
-              </Link>
+              <>
+                <Link
+                  to="/auth"
+                  search={{ next: "/sell" }}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full rounded-xl bg-white text-primary py-2.5 text-sm font-bold"
+                >
+                  <Tag className="h-4 w-4" /> Post an Item
+                </Link>
+                <Link
+                  to="/auth"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-2 w-full rounded-xl bg-white/10 text-white py-2.5 text-sm font-semibold"
+                >
+                  <User className="h-4 w-4" /> Sign In / Register
+                </Link>
+              </>
             )}
           </div>
         </div>

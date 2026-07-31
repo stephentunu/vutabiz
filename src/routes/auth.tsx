@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
+import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +27,6 @@ type Ward = { id: number; county_id: number; sub_county_id: number | null; name:
 const ADMIN_EMAIL = "admins@gmail.com";
 
 function AuthPage() {
-  const navigate = useNavigate();
   const { next } = useSearch({ from: "/auth" });
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
@@ -95,10 +94,11 @@ function AuthPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         const userEmail = data.session.user?.email || "";
-        navigate({ to: next ?? (userEmail.trim().toLowerCase() === ADMIN_EMAIL ? "/admin" : "/dashboard") });
+        const destination = next ?? (userEmail.trim().toLowerCase() === ADMIN_EMAIL ? "/admin" : "/dashboard");
+        window.location.href = destination;
       }
     });
-  }, [navigate, next]);
+  }, [next]);
 
   const subCountiesForCounty = useMemo(
     () => subCounties.filter((sc) => sc.county_id === Number(countyId)),
@@ -142,7 +142,7 @@ function AuthPage() {
         if (phone.length < 10) throw new Error("Please enter a valid phone number");
         if (!isAdminEmail && !effectiveCounty) throw new Error("County is required");
 
-        const { error } = await supabase.auth.signUp({
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email: email.trim().toLowerCase(),
           password,
           options: {
@@ -159,7 +159,19 @@ function AuthPage() {
           },
         });
         if (error) throw error;
+        // If Supabase requires email confirmation, session will be null.
+        // In that case stay on page and ask user to verify their email.
+        if (!signUpData.session) {
+          toast.success("Account created! Please check your email to confirm your account before signing in.");
+          setLoading(false);
+          return;
+        }
         toast.success("Account created — you're signed in!");
+        const targetEmail = email.trim().toLowerCase();
+        const destination = next ?? (targetEmail === ADMIN_EMAIL ? "/admin" : "/dashboard");
+        // Hard redirect so the router re-runs all beforeLoad guards with the new session
+        window.location.href = destination;
+        return;
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim().toLowerCase(),
@@ -175,9 +187,12 @@ function AuthPage() {
           throw error;
         }
         toast.success("Welcome back!");
+        const targetEmail = email.trim().toLowerCase();
+        const destination = next ?? (targetEmail === ADMIN_EMAIL ? "/admin" : "/dashboard");
+        // Hard redirect so the router re-runs all beforeLoad guards with the fresh session
+        window.location.href = destination;
+        return;
       }
-      const targetEmail = email.trim().toLowerCase();
-      navigate({ to: next ?? (targetEmail === ADMIN_EMAIL ? "/admin" : "/dashboard") });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Authentication failed");
     } finally {
@@ -193,7 +208,7 @@ function AuthPage() {
     }
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email: ADMIN_EMAIL,
         password,
         options: {
@@ -209,8 +224,14 @@ function AuthPage() {
         },
       });
       if (error) throw error;
+      if (!signUpData.session) {
+        toast.success("Admin account created! Please check your email to confirm before signing in.");
+        setLoading(false);
+        return;
+      }
       toast.success("Admin account created! Redirecting…");
-      navigate({ to: "/admin" });
+      // Hard redirect so the router re-runs all beforeLoad guards with the new session
+      window.location.href = "/admin";
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
