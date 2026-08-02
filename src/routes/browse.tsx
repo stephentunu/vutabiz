@@ -92,6 +92,20 @@ const PRICE_TYPE_SUFFIX: Record<string, string> = {
   agreed: " (agreed)",
 };
 
+/** Every descendant category id under `rootId`, at any depth (group → sub-category → item/specialty). */
+function collectDescendantIds(rootId: number, all: Category[]): number[] {
+  const result: number[] = [];
+  const queue = [rootId];
+  while (queue.length > 0) {
+    const id = queue.shift() as number;
+    for (const kid of all.filter((c) => c.parent_id === id)) {
+      result.push(kid.id);
+      queue.push(kid.id);
+    }
+  }
+  return result;
+}
+
 type PrevSearch = {
   q?: string; category?: string; type?: string; listing_type?: "sale" | "hire" | "service" | "donation";
   county?: number; sub_county?: number; subcounty?: number; ward?: number;
@@ -213,38 +227,29 @@ function Browse() {
           query = query.lte("price", maxPrice);
         }
 
-        // Handle category hierarchy (subcategories vs parent categories)
+        // Handle category hierarchy — works for any depth (group, sub-category,
+        // or the most specific item/specialty) by collecting every descendant id.
         if (category) {
-          // Find if this category is a parent
           const cat = categories.find((c) => c.slug === category);
           if (cat) {
-            if (cat.parent_id === null) {
-              // It is a parent, get all child category IDs
-              const childIds = categories.filter((c) => c.parent_id === cat.id).map((c) => c.id);
-              const allIds = [cat.id, ...childIds];
-              query = query.in("category_id", allIds);
-            } else {
-              // It is a child category
-              query = query.eq("category_id", cat.id);
-            }
+            const allIds = [cat.id, ...collectDescendantIds(cat.id, categories)];
+            query = query.in("category_id", allIds);
           } else {
-            // Fetch category row from DB if categories list isn't loaded yet
+            // Categories list isn't loaded yet — resolve via DB directly.
             const { data: dbCat } = await supabase
               .from("categories")
               .select("id,parent_id")
               .eq("slug", category)
               .maybeSingle();
             if (dbCat) {
-              if (dbCat.parent_id === null) {
-                const { data: children } = await supabase
-                  .from("categories")
-                  .select("id")
-                  .eq("parent_id", dbCat.id);
-                const allIds = [dbCat.id, ...(children?.map((c) => c.id) ?? [])];
-                query = query.in("category_id", allIds);
-              } else {
-                query = query.eq("category_id", dbCat.id);
+              const { data: level2 } = await supabase.from("categories").select("id").eq("parent_id", dbCat.id);
+              const level2Ids = (level2 ?? []).map((c) => c.id);
+              let level3Ids: number[] = [];
+              if (level2Ids.length > 0) {
+                const { data: level3 } = await supabase.from("categories").select("id").in("parent_id", level2Ids);
+                level3Ids = (level3 ?? []).map((c) => c.id);
               }
+              query = query.in("category_id", [dbCat.id, ...level2Ids, ...level3Ids]);
             }
           }
         }
@@ -261,14 +266,38 @@ function Browse() {
     return () => clearTimeout(handler);
   }, [q, category, county, sub_county, subcounty, ward, listing_type, type, minPrice, maxPrice, categories]);
 
-  // Construct Category tree (Parent -> Children)
+  // Construct Category tree (Group -> Sub-category -> Item/Specialty)
   const categoryTree = useMemo(() => {
     const parents = categories.filter((c) => c.parent_id === null);
     return parents.map((parent) => ({
       ...parent,
-      children: categories.filter((c) => c.parent_id === parent.id),
+      children: categories
+        .filter((c) => c.parent_id === parent.id)
+        .map((child) => ({
+          ...child,
+          items: categories.filter((c) => c.parent_id === child.id),
+        })),
     }));
   }, [categories]);
+
+  // Category browsing must stay in sync with the active listing type — the
+  // same way "For Sale"/"For Hire" only make sense against item categories,
+  // "Services" should only surface the Services & Skills category tree
+  // instead of irrelevant item categories (Home & Living, Furniture, etc.).
+  const activeTypeForCats = type || listing_type;
+  const visibleCategoryTree = useMemo(() => {
+    if (activeTypeForCats === "service") {
+      return categoryTree.filter((g) => g.slug === "services-skills");
+    }
+    if (activeTypeForCats === "sale" || activeTypeForCats === "hire" || activeTypeForCats === "donation") {
+      return categoryTree.filter((g) => g.slug !== "services-skills");
+    }
+    return categoryTree; // no type filter active — show every category
+  }, [categoryTree, activeTypeForCats]);
+  const visibleCategories = useMemo(
+    () => visibleCategoryTree.flatMap((g) => [g, ...g.children.flatMap((c) => [c, ...c.items])]),
+    [visibleCategoryTree],
+  );
 
   // Sub-counties filtered by selected county
   const subCountiesForCounty = useMemo(
@@ -386,7 +415,7 @@ function Browse() {
           ].map((t) => (
             <button
               key={t.v}
-              onClick={() => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, listing_type: (t.v as "sale" | "hire" | "service" | "donation") || undefined, type: undefined }) })}
+              onClick={() => navigate({ to: "/browse", search: (prev: PrevSearch) => ({ ...prev, listing_type: (t.v as "sale" | "hire" | "service" | "donation") || undefined, type: undefined, category: undefined }) })}
               className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition ${(activeType || "") === t.v ? "bg-primary text-white border-primary" : "bg-white border-border hover:border-primary/50"}`}
             >
               {t.l}
@@ -521,7 +550,7 @@ function Browse() {
                   {!category && <Check className="h-3.5 w-3.5" />}
                 </button>
                 <div className="border-t border-border/50 my-1.5" />
-                {categoryTree.map((parent) => {
+                {visibleCategoryTree.map((parent) => {
                   const isParentActive = category === parent.slug;
                   return (
                     <div key={parent.id} className="space-y-1">
@@ -534,15 +563,33 @@ function Browse() {
                       {parent.children.length > 0 && (
                         <div className="pl-2.5 border-l border-border/80 ml-1 mt-0.5 space-y-0.5">
                           {parent.children.map((child) => {
-                            const isChildActive = category === child.slug;
+                            const isChildActive =
+                              category === child.slug || child.items.some((i) => i.slug === category);
                             return (
-                              <button
-                                key={child.id}
-                                onClick={() => applyFilters({ category: child.slug })}
-                                className={`w-full text-left text-[11px] font-semibold py-0.5 block transition ${isChildActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
-                              >
-                                {child.name}
-                              </button>
+                              <div key={child.id}>
+                                <button
+                                  onClick={() => applyFilters({ category: child.slug })}
+                                  className={`w-full text-left text-[11px] font-semibold py-0.5 block transition ${isChildActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"}`}
+                                >
+                                  {child.name}
+                                </button>
+                                {isChildActive && child.items.length > 0 && (
+                                  <div className="pl-2.5 border-l border-border/60 ml-1 mt-0.5 space-y-0.5">
+                                    {child.items.map((item) => {
+                                      const isItemActive = category === item.slug;
+                                      return (
+                                        <button
+                                          key={item.id}
+                                          onClick={() => applyFilters({ category: item.slug })}
+                                          className={`w-full text-left text-[10.5px] py-0.5 block transition ${isItemActive ? "text-primary font-bold" : "text-muted-foreground/80 hover:text-foreground"}`}
+                                        >
+                                          {item.name}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
                             );
                           })}
                         </div>
@@ -768,7 +815,7 @@ function Browse() {
                       <button
                         key={t}
                         onClick={() => {
-                          applyFilters({ listing_type: t });
+                          applyFilters({ listing_type: t, category: "" });
                           setShowMobileFilters(false);
                         }}
                         className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold transition cursor-pointer ${
@@ -796,11 +843,15 @@ function Browse() {
                   className="w-full rounded-lg border border-input bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-primary text-sm"
                 >
                   <option value="">All Categories</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.slug}>
-                      {c.parent_id ? `— ${c.name}` : c.name}
-                    </option>
-                  ))}
+                  {visibleCategories.map((c) => {
+                    const parent = c.parent_id ? categories.find((p) => p.id === c.parent_id) : undefined;
+                    const depth = c.parent_id ? (parent?.parent_id ? 2 : 1) : 0;
+                    return (
+                      <option key={c.id} value={c.slug}>
+                        {depth > 0 ? `${"— ".repeat(depth)}${c.name}` : c.name}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

@@ -1,6 +1,12 @@
 // Service / Skill taxonomy for Vutabiz (Soko Nyumbani Business Hub)
 // Two-level: Category → Specialty. Advertisers offering a service pick a
 // category then a specific specialty; specialty auto-fills the Job/Skill title.
+//
+// `slug` on each category must stay in sync with the rows seeded by
+// supabase/migrations/20260731090000_unified_category_taxonomy.sql.
+// Each `specialty` is matched to its own database row via the deterministic
+// `specialtySlug()` helper in src/lib/slug.ts, seeded by
+// supabase/migrations/20260801090000_category_leaf_taxonomy.sql.
 
 export type SkillCategory = { slug: string; name: string; specialties: string[] };
 

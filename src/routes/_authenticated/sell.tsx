@@ -9,6 +9,7 @@ import { Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 import { SKILL_CATEGORIES } from "@/lib/skills-data";
 import { CATEGORY_TREE } from "@/lib/category-tree";
+import { itemSlug, specialtySlug } from "@/lib/slug";
 
 export const Route = createFileRoute("/_authenticated/sell")({ component: SellPage });
 
@@ -200,11 +201,15 @@ function SellPage() {
   const selectedSubCategory = selectedGroup?.children.find((c) => c.slug === subCategorySlug);
 
   // Keep the derived title and the real DB category_id (used for filtering on
-  // /browse) in sync whenever the cascade selection changes.
+  // /browse) in sync whenever the cascade selection changes. We link to the
+  // most specific row available — the exact item if the database has it
+  // seeded (see supabase/migrations/20260801090000_category_leaf_taxonomy.sql),
+  // falling back gracefully to the sub-category or group otherwise.
   useEffect(() => {
     if (listingType === "service") return;
     if (itemLabel) setTitle(itemLabel);
-    const dbCat = subCategorySlug ? catBySlug.get(subCategorySlug) : groupSlug ? catBySlug.get(groupSlug) : undefined;
+    const leaf = itemLabel && subCategorySlug ? catBySlug.get(itemSlug(subCategorySlug, itemLabel)) : undefined;
+    const dbCat = leaf ?? (subCategorySlug ? catBySlug.get(subCategorySlug) : groupSlug ? catBySlug.get(groupSlug) : undefined);
     setCategoryId(dbCat ? dbCat.id : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemLabel, subCategorySlug, groupSlug, cats, listingType]);
@@ -212,7 +217,8 @@ function SellPage() {
   useEffect(() => {
     if (listingType !== "service") return;
     if (specialty) { setTitle(specialty); setSpecialties([specialty]); }
-    const dbCat = skillCategorySlug ? catBySlug.get(skillCategorySlug) : undefined;
+    const leaf = specialty && skillCategorySlug ? catBySlug.get(specialtySlug(skillCategorySlug, specialty)) : undefined;
+    const dbCat = leaf ?? (skillCategorySlug ? catBySlug.get(skillCategorySlug) : undefined);
     setCategoryId(dbCat ? dbCat.id : "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [specialty, skillCategorySlug, cats, listingType]);

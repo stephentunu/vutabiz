@@ -4,11 +4,15 @@
 //
 // IMPORTANT: `slug` on each group and each sub-category (CategoryLeaf) must
 // stay in sync with the rows seeded by
-// supabase/migrations/20260731_unified_category_taxonomy.sql — the app uses
-// these slugs to look up the matching database category id so that ads
+// supabase/migrations/20260731090000_unified_category_taxonomy.sql — the app
+// uses these slugs to look up the matching database category id so that ads
 // posted via /sell are filed under the exact same category the /browse page
-// filters and displays by. If you add/rename a group or sub-category here,
-// mirror the change in that migration.
+// filters and displays by. The individual `items` (the 3rd, most specific
+// tier) are matched to their own database rows via the deterministic
+// `itemSlug()` helper in src/lib/slug.ts, seeded by
+// supabase/migrations/20260801090000_category_leaf_taxonomy.sql. If you
+// add/rename a group, sub-category, or item here, mirror the change in
+// those migrations (or re-run the generator that produced them).
 
 export type CategoryLeaf = { slug: string; name: string; items: string[] };
 export type CategoryGroup = { slug: string; name: string; children: CategoryLeaf[] };
