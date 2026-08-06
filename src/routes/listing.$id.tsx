@@ -324,27 +324,18 @@ function ListingPage() {
               ) : (
                 me !== listing.seller_id && (
                   <>
-                    <input
-                      type="number"
-                      value={amount}
-                      onChange={(e) => setAmount(Number(e.target.value))}
-                      placeholder={isService ? "Your budget (KSh)" : "Your offer (KSh)"}
-                      className="w-full rounded border border-input bg-white px-2.5 py-1.5 mb-1.5 outline-none focus:ring-2 focus:ring-primary text-xs"
-                    />
-                    <textarea
-                      value={msg}
-                      onChange={(e) => setMsg(e.target.value)}
-                      placeholder={isService ? "Describe the job / requirements" : "Optional message"}
-                      rows={2}
-                      className="w-full rounded border border-input bg-white px-2.5 py-1.5 mb-1.5 outline-none focus:ring-2 focus:ring-primary text-xs"
-                    />
                     <button
-                      disabled={loading}
-                      onClick={send}
-                      className="w-full rounded bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold disabled:opacity-60 cursor-pointer"
+                      onClick={() => {
+                        setAmount(myOffer ? Number(myOffer.amount) : Number(listing.price));
+                        setOfferOpen(true);
+                      }}
+                      className="w-full rounded-lg bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold cursor-pointer transition"
                     >
-                      {isService ? "Send Quote Request" : "Send offer"}
+                      {isService ? "Request a Quote" : myOffer ? "Change my offer" : "Make an offer"}
                     </button>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">
+                      The seller sees your offer on their dashboard and can accept it.
+                    </p>
                   </>
                 )
               )}
