@@ -171,11 +171,31 @@ export const respondOffer = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((raw: { offer_id: string; action: "accepted" | "rejected" }) => raw)
   .handler(async ({ data, context }) => {
+    const { data: offer, error: readErr } = await context.supabase
+      .from("offers")
+      .select("id,listing_id")
+      .eq("id", data.offer_id)
+      .maybeSingle();
+    if (readErr) throw new Error(readErr.message);
+    if (!offer) throw new Error("Offer not found");
+
     const { error } = await context.supabase
       .from("offers")
       .update({ status: data.action })
       .eq("id", data.offer_id);
     if (error) throw new Error(error.message);
+
+    // Accepting one offer automatically declines the other pending offers
+    // on the same listing, so only one buyer gets contact access.
+    if (data.action === "accepted") {
+      const { error: rejErr } = await context.supabase
+        .from("offers")
+        .update({ status: "rejected" })
+        .eq("listing_id", offer.listing_id)
+        .eq("status", "pending")
+        .neq("id", data.offer_id);
+      if (rejErr) throw new Error(rejErr.message);
+    }
     return { ok: true };
   });
 
