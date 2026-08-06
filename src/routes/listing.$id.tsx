@@ -150,6 +150,7 @@ function ListingPage() {
       );
       await load();
       setMsg("");
+      setOfferOpen(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed");
     } finally {
