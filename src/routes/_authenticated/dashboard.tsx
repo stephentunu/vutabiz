@@ -328,69 +328,108 @@ function Dashboard() {
             </div>
           )}
 
-          {/* Offers tab */}
+          {/* Offers tab — grouped per listing so the seller can compare and pick one */}
           {activeTab === "offers" && (
-            <div className="space-y-2">
-              {offers.map((o) => {
-                const buyer = buyers[o.buyer_id];
-                return (
-                  <div
-                    key={o.id}
-                    className="bg-card rounded-xl border border-border/40 shadow-sm p-2.5 flex items-center gap-3"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold">
-                        <span className="text-foreground">{buyer?.full_name ?? "Buyer"}</span>{" "}
-                        offered{" "}
-                        <span className="text-primary-dark font-extrabold">
-                          KSh {Number(o.amount).toLocaleString()}
-                        </span>
-                      </div>
-                      {o.message && (
-                        <div className="text-[11px] text-muted-foreground italic mt-0.5 truncate">
-                          "{o.message}"
+            <div className="space-y-4">
+              {listings
+                .map((l) => ({ listing: l, list: offers.filter((o) => o.listing_id === l.id) }))
+                .filter((g) => g.list.length > 0)
+                .map(({ listing, list }) => {
+                  const sorted = [...list].sort((a, b) => Number(b.amount) - Number(a.amount));
+                  const best = sorted.find((o) => o.status === "pending")?.id;
+                  const hasAccepted = list.some((o) => o.status === "accepted");
+                  return (
+                    <div
+                      key={listing.id}
+                      className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden"
+                    >
+                      <div className="flex items-center gap-2.5 px-3 py-2.5 bg-muted/40 border-b border-border/40">
+                        <div className="h-9 w-9 rounded-lg bg-muted overflow-hidden shrink-0">
+                          {listing.image_url && (
+                            <img src={listing.image_url} alt={listing.title} className="h-full w-full object-cover" />
+                          )}
                         </div>
-                      )}
-                      <div className="flex items-center gap-2 mt-1">
-                        <Link
-                          to="/listing/$id"
-                          params={{ id: o.listing_id }}
-                          className="text-[10px] text-primary hover:underline font-bold"
-                        >
-                          View listing
-                        </Link>
-                        {buyer?.phone && (
-                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <Phone className="h-2.5 w-2.5" /> {buyer.phone}
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold truncate">{listing.title}</div>
+                          <div className="text-[10px] text-muted-foreground">
+                            Asking KSh {Number(listing.price).toLocaleString()} · {list.length} offer
+                            {list.length > 1 ? "s" : ""}
+                          </div>
+                        </div>
+                        {hasAccepted && (
+                          <span className="text-[10px] font-bold text-orange-700 bg-orange-50 border border-orange-200 rounded-full px-2 py-0.5">
+                            Offer accepted
                           </span>
                         )}
-                        <span className="text-[10px] text-muted-foreground">
-                          {new Date(o.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "short" })}
-                        </span>
+                      </div>
+                      <div className="divide-y divide-border/40">
+                        {sorted.map((o) => {
+                          const buyer = buyers[o.buyer_id];
+                          return (
+                            <div key={o.id} className="p-2.5 flex items-center gap-3">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-semibold flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-foreground">{buyer?.full_name ?? "Buyer"}</span> offered{" "}
+                                  <span className="text-primary-dark font-extrabold">
+                                    KSh {Number(o.amount).toLocaleString()}
+                                  </span>
+                                  {o.id === best && !hasAccepted && (
+                                    <span className="text-[9px] font-bold uppercase tracking-wide bg-primary/10 text-primary-dark border border-primary/20 rounded-full px-1.5 py-0.5">
+                                      Highest
+                                    </span>
+                                  )}
+                                </div>
+                                {o.message && (
+                                  <div className="text-[11px] text-muted-foreground italic mt-0.5 truncate">
+                                    "{o.message}"
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  {buyer?.phone && (
+                                    <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                                      <Phone className="h-2.5 w-2.5" /> {buyer.phone}
+                                    </span>
+                                  )}
+                                  <span className="text-[10px] text-muted-foreground">
+                                    {new Date(o.created_at).toLocaleDateString("en-KE", {
+                                      day: "numeric",
+                                      month: "short",
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                              <OfferStatusBadge status={o.status} />
+                              {o.status === "pending" && (
+                                <div className="flex gap-1 shrink-0">
+                                  <button
+                                    onClick={() => act(o.id, "accepted")}
+                                    title="Accept this offer"
+                                    className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition cursor-pointer"
+                                  >
+                                    <Check className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => act(o.id, "rejected")}
+                                    title="Reject offer"
+                                    className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition cursor-pointer"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="px-3 py-1.5 bg-muted/20 text-[10px] text-muted-foreground">
+                        Accepting one offer automatically declines the rest and unlocks your contact for that buyer.{" "}
+                        <Link to="/listing/$id" params={{ id: listing.id }} className="text-primary hover:underline font-bold">
+                          View listing
+                        </Link>
                       </div>
                     </div>
-                    <OfferStatusBadge status={o.status} />
-                    {o.status === "pending" && (
-                      <div className="flex gap-1 shrink-0">
-                        <button
-                          onClick={() => act(o.id, "accepted")}
-                          title="Accept offer"
-                          className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-orange-700 hover:bg-orange-100 border border-orange-200 transition cursor-pointer"
-                        >
-                          <Check className="h-3.5 w-3.5" />
-                        </button>
-                        <button
-                          onClick={() => act(o.id, "rejected")}
-                          title="Reject offer"
-                          className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 transition cursor-pointer"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
               {!offers.length && (
                 <div className="text-center py-10 bg-card rounded-xl border border-border/40">
                   <p className="text-muted-foreground text-xs">No offers received yet.</p>
