@@ -76,6 +76,7 @@ function ListingPage() {
   const [amount, setAmount] = useState<number>(0);
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [offerOpen, setOfferOpen] = useState(false);
 
   async function load() {
     const { data: l } = await supabase
