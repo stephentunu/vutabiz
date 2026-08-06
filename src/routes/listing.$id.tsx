@@ -343,6 +343,85 @@ function ListingPage() {
             </div>
           </aside>
         </div>
+
+        {offerOpen && (
+          <div
+            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+            onClick={() => !loading && setOfferOpen(false)}
+          >
+            <div
+              className="w-full max-w-sm rounded-xl bg-card p-4 shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h2 className="text-sm font-extrabold text-primary-dark">
+                    {isService ? "Request a quote" : "Make an offer"}
+                  </h2>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{listing.title}</p>
+                </div>
+                <button
+                  onClick={() => setOfferOpen(false)}
+                  className="text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
+                  aria-label="Close"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="mt-3">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {isService ? "Your budget (KSh)" : "Amount you are willing to pay (KSh)"}
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  autoFocus
+                  value={amount || ""}
+                  onChange={(e) => setAmount(Number(e.target.value))}
+                  placeholder="e.g. 4500"
+                  className="mt-1 w-full rounded border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                />
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  Asking price: KSh {Number(listing.price).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="mt-2.5">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Message {isService ? "" : "(optional)"}
+                </label>
+                <textarea
+                  value={msg}
+                  onChange={(e) => setMsg(e.target.value)}
+                  rows={3}
+                  placeholder={isService ? "Describe the job / requirements" : "Add a note for the seller"}
+                  className="mt-1 w-full rounded border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs"
+                />
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={() => setOfferOpen(false)}
+                  disabled={loading}
+                  className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition cursor-pointer disabled:opacity-60"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={loading || !amount || amount <= 0}
+                  onClick={send}
+                  className="flex-1 rounded-lg bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold transition cursor-pointer disabled:opacity-60"
+                >
+                  {loading ? "Sending…" : isService ? "Send request" : "Send offer"}
+                </button>
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground text-center">
+                The seller reviews all offers on their dashboard and accepts one.
+              </p>
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
     </div>
