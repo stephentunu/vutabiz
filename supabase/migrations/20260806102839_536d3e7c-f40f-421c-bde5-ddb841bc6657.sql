@@ -1,0 +1,2 @@
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, anon, service_role;
+GRANT EXECUTE ON FUNCTION public.calc_ad_fee(numeric, smallint, numeric, numeric, public.risk_level, integer) TO authenticated, service_role;
