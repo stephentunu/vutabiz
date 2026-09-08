@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as MarketRouteImport } from './routes/market'
 import { Route as DonationsRouteImport } from './routes/donations'
 import { Route as BrowseRouteImport } from './routes/browse'
@@ -26,6 +28,16 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 const ThankYouRoute = ThankYouRouteImport.update({
   id: '/thank-you',
   path: '/thank-you',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
+  id: '/privacy-policy',
+  path: '/privacy-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketRoute = MarketRouteImport.update({
@@ -94,6 +106,8 @@ export interface FileRoutesByFullPath {
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -108,6 +122,8 @@ export interface FileRoutesByTo {
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -124,6 +140,8 @@ export interface FileRoutesById {
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
+  '/privacy-policy': typeof PrivacyPolicyRoute
+  '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -140,6 +158,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/donations'
     | '/market'
+    | '/privacy-policy'
+    | '/terms'
     | '/thank-you'
     | '/admin'
     | '/dashboard'
@@ -154,6 +174,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/donations'
     | '/market'
+    | '/privacy-policy'
+    | '/terms'
     | '/thank-you'
     | '/admin'
     | '/dashboard'
@@ -169,6 +191,8 @@ export interface FileRouteTypes {
     | '/browse'
     | '/donations'
     | '/market'
+    | '/privacy-policy'
+    | '/terms'
     | '/thank-you'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
@@ -185,6 +209,8 @@ export interface RootRouteChildren {
   BrowseRoute: typeof BrowseRoute
   DonationsRoute: typeof DonationsRouteWithChildren
   MarketRoute: typeof MarketRoute
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  TermsRoute: typeof TermsRoute
   ThankYouRoute: typeof ThankYouRoute
   ListingIdRoute: typeof ListingIdRoute
   StoreUserIdRoute: typeof StoreUserIdRoute
@@ -197,6 +223,20 @@ declare module '@tanstack/react-router' {
       path: '/thank-you'
       fullPath: '/thank-you'
       preLoaderRoute: typeof ThankYouRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy-policy': {
+      id: '/privacy-policy'
+      path: '/privacy-policy'
+      fullPath: '/privacy-policy'
+      preLoaderRoute: typeof PrivacyPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/market': {
@@ -320,6 +360,8 @@ const rootRouteChildren: RootRouteChildren = {
   BrowseRoute: BrowseRoute,
   DonationsRoute: DonationsRouteWithChildren,
   MarketRoute: MarketRoute,
+  PrivacyPolicyRoute: PrivacyPolicyRoute,
+  TermsRoute: TermsRoute,
   ThankYouRoute: ThankYouRoute,
   ListingIdRoute: ListingIdRoute,
   StoreUserIdRoute: StoreUserIdRoute,
