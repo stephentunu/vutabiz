@@ -212,7 +212,18 @@ export function Footer() {
             <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
             <li><Link to="/sell" className="hover:text-white transition-colors">Sell an Item</Link></li>
             <li><Link to="/browse" className="hover:text-white transition-colors">Browse Listings</Link></li>
+            <li><Link to="/donations" className="hover:text-white transition-colors">Donation Hub</Link></li>
             <li><Link to="/auth" className="hover:text-white transition-colors">Sign In / Register</Link></li>
+          </ul>
+        </div>
+        <div>
+          <h4 className="font-bold mb-4">Legal</h4>
+          <ul className="space-y-2 text-sm text-white/80">
+            <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+            <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
+            <li><span className="text-white/50">Refund Policy <span className="text-[10px]">(coming soon)</span></span></li>
+            <li><span className="text-white/50">Good Seller Policy <span className="text-[10px]">(coming soon)</span></span></li>
+            <li><span className="text-white/50">Service Seller Contract <span className="text-[10px]">(coming soon)</span></span></li>
           </ul>
         </div>
         <div>
