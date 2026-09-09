@@ -95,13 +95,28 @@ export function LegalPage({
 }
 
 /** Small helpers to keep the policy bodies readable in route files. */
-export function P({ children }: { children: ReactNode }) {
-  return <p className="mb-3">{children}</p>;
+export function P({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <p className={`mb-3 ${className ?? ""}`}>{children}</p>;
 }
 
-export function OL({ children }: { children: ReactNode }) {
+export function OL({
+  children,
+  start,
+}: {
+  children: ReactNode;
+  start?: number;
+}) {
   return (
-    <ol className="list-decimal pl-6 space-y-2 marker:text-muted-foreground">
+    <ol
+      className="list-decimal pl-6 space-y-2 marker:text-muted-foreground"
+      start={start}
+    >
       {children}
     </ol>
   );
