@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ThankYouRouteImport } from './routes/thank-you'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as MarketRouteImport } from './routes/market'
 import { Route as DonationsRouteImport } from './routes/donations'
@@ -33,6 +34,11 @@ const ThankYouRoute = ThankYouRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RefundPolicyRoute = RefundPolicyRouteImport.update({
+  id: '/refund-policy',
+  path: '/refund-policy',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -141,6 +149,7 @@ export interface FileRoutesById {
   '/donations': typeof DonationsRouteWithChildren
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
+  '/refund-policy': typeof RefundPolicyRoute
   '/terms': typeof TermsRoute
   '/thank-you': typeof ThankYouRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/donations'
     | '/market'
     | '/privacy-policy'
+    | '/refund-policy'
     | '/terms'
     | '/thank-you'
     | '/admin'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/donations'
     | '/market'
     | '/privacy-policy'
+    | '/refund-policy'
     | '/terms'
     | '/thank-you'
     | '/admin'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/donations'
     | '/market'
     | '/privacy-policy'
+    | '/refund-policy'
     | '/terms'
     | '/thank-you'
     | '/_authenticated/admin'
@@ -210,6 +222,7 @@ export interface RootRouteChildren {
   DonationsRoute: typeof DonationsRouteWithChildren
   MarketRoute: typeof MarketRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
+  RefundPolicyRoute: typeof RefundPolicyRoute
   TermsRoute: typeof TermsRoute
   ThankYouRoute: typeof ThankYouRoute
   ListingIdRoute: typeof ListingIdRoute
@@ -230,6 +243,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/refund-policy': {
+      id: '/refund-policy'
+      path: '/refund-policy'
+      fullPath: '/refund-policy'
+      preLoaderRoute: typeof RefundPolicyRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy-policy': {
@@ -361,6 +381,7 @@ const rootRouteChildren: RootRouteChildren = {
   DonationsRoute: DonationsRouteWithChildren,
   MarketRoute: MarketRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
+  RefundPolicyRoute: RefundPolicyRoute,
   TermsRoute: TermsRoute,
   ThankYouRoute: ThankYouRoute,
   ListingIdRoute: ListingIdRoute,
