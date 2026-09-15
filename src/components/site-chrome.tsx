@@ -221,8 +221,8 @@ export function Footer() {
           <ul className="space-y-2 text-sm text-white/80">
             <li><Link to="/privacy-policy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             <li><Link to="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
-            <li><span className="text-white/50">Refund Policy <span className="text-[10px]">(coming soon)</span></span></li>
-            <li><span className="text-white/50">Good Seller Policy <span className="text-[10px]">(coming soon)</span></span></li>
+            <li><Link to="/refund-policy" className="hover:text-white transition-colors">Refund Policy</Link></li>
+            <li><Link to="/goods-seller-contract" className="hover:text-white transition-colors">Goods Seller Contract</Link></li>
             <li><span className="text-white/50">Service Seller Contract <span className="text-[10px]">(coming soon)</span></span></li>
           </ul>
         </div>
