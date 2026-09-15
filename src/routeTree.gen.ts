@@ -14,6 +14,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as RefundPolicyRouteImport } from './routes/refund-policy'
 import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
 import { Route as MarketRouteImport } from './routes/market'
+import { Route as GoodsSellerContractRouteImport } from './routes/goods-seller-contract'
 import { Route as DonationsRouteImport } from './routes/donations'
 import { Route as BrowseRouteImport } from './routes/browse'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -49,6 +50,11 @@ const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
 const MarketRoute = MarketRouteImport.update({
   id: '/market',
   path: '/market',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoodsSellerContractRoute = GoodsSellerContractRouteImport.update({
+  id: '/goods-seller-contract',
+  path: '/goods-seller-contract',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DonationsRoute = DonationsRouteImport.update({
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
+  '/goods-seller-contract': typeof GoodsSellerContractRoute
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
+  '/goods-seller-contract': typeof GoodsSellerContractRoute
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/browse': typeof BrowseRoute
   '/donations': typeof DonationsRouteWithChildren
+  '/goods-seller-contract': typeof GoodsSellerContractRoute
   '/market': typeof MarketRoute
   '/privacy-policy': typeof PrivacyPolicyRoute
   '/refund-policy': typeof RefundPolicyRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/browse'
     | '/donations'
+    | '/goods-seller-contract'
     | '/market'
     | '/privacy-policy'
     | '/refund-policy'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/browse'
     | '/donations'
+    | '/goods-seller-contract'
     | '/market'
     | '/privacy-policy'
     | '/refund-policy'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/browse'
     | '/donations'
+    | '/goods-seller-contract'
     | '/market'
     | '/privacy-policy'
     | '/refund-policy'
@@ -220,6 +232,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BrowseRoute: typeof BrowseRoute
   DonationsRoute: typeof DonationsRouteWithChildren
+  GoodsSellerContractRoute: typeof GoodsSellerContractRoute
   MarketRoute: typeof MarketRoute
   PrivacyPolicyRoute: typeof PrivacyPolicyRoute
   RefundPolicyRoute: typeof RefundPolicyRoute
@@ -264,6 +277,13 @@ declare module '@tanstack/react-router' {
       path: '/market'
       fullPath: '/market'
       preLoaderRoute: typeof MarketRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goods-seller-contract': {
+      id: '/goods-seller-contract'
+      path: '/goods-seller-contract'
+      fullPath: '/goods-seller-contract'
+      preLoaderRoute: typeof GoodsSellerContractRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/donations': {
@@ -379,6 +399,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BrowseRoute: BrowseRoute,
   DonationsRoute: DonationsRouteWithChildren,
+  GoodsSellerContractRoute: GoodsSellerContractRoute,
   MarketRoute: MarketRoute,
   PrivacyPolicyRoute: PrivacyPolicyRoute,
   RefundPolicyRoute: RefundPolicyRoute,
