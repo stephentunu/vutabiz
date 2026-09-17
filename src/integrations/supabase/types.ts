@@ -64,12 +64,110 @@ export type Database = {
         }
         Relationships: []
       }
+      disputes: {
+        Row: {
+          admin_notes: string | null
+          against_user_id: string
+          created_at: string
+          evidence_url: string | null
+          id: string
+          order_id: string
+          raised_by: string
+          reason: string
+          resolved_at: string | null
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          against_user_id: string
+          created_at?: string
+          evidence_url?: string | null
+          id?: string
+          order_id: string
+          raised_by: string
+          reason: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          against_user_id?: string
+          created_at?: string
+          evidence_url?: string | null
+          id?: string
+          order_id?: string
+          raised_by?: string
+          reason?: string
+          resolved_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disputes_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      favorites: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          id: string
+          seller_id: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          id?: string
+          seller_id: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          id?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           ad_expires_at: string | null
           ad_fee_ksh: number
           ad_paid: boolean
           category_id: number | null
+          contact_clicks_count: number
           contact_phone: string | null
           county_id: number | null
           created_at: string
@@ -106,6 +204,7 @@ export type Database = {
           ad_fee_ksh?: number
           ad_paid?: boolean
           category_id?: number | null
+          contact_clicks_count?: number
           contact_phone?: string | null
           county_id?: number | null
           created_at?: string
@@ -144,6 +243,7 @@ export type Database = {
           ad_fee_ksh?: number
           ad_paid?: boolean
           category_id?: number | null
+          contact_clicks_count?: number
           contact_phone?: string | null
           county_id?: number | null
           created_at?: string
@@ -249,6 +349,74 @@ export type Database = {
           },
         ]
       }
+      orders: {
+        Row: {
+          amount: number
+          buyer_id: string
+          courier_partner: string | null
+          created_at: string
+          delivery_address: string | null
+          delivery_fee: number
+          delivery_status: string
+          escrow_status: string
+          id: string
+          listing_id: string
+          payment_method: string
+          payment_ref: string | null
+          released_at: string | null
+          seller_id: string
+          total_amount: number
+          tracking_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          buyer_id: string
+          courier_partner?: string | null
+          created_at?: string
+          delivery_address?: string | null
+          delivery_fee?: number
+          delivery_status?: string
+          escrow_status?: string
+          id?: string
+          listing_id: string
+          payment_method?: string
+          payment_ref?: string | null
+          released_at?: string | null
+          seller_id: string
+          total_amount: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          buyer_id?: string
+          courier_partner?: string | null
+          created_at?: string
+          delivery_address?: string | null
+          delivery_fee?: number
+          delivery_status?: string
+          escrow_status?: string
+          id?: string
+          listing_id?: string
+          payment_method?: string
+          payment_ref?: string | null
+          released_at?: string | null
+          seller_id?: string
+          total_amount?: number
+          tracking_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount: number
@@ -304,6 +472,9 @@ export type Database = {
           id: string
           market_share: number
           phone: string
+          referral_code: string | null
+          referred_by: string | null
+          total_referrals_count: number
           town: string | null
           updated_at: string
           ward_id: number | null
@@ -318,6 +489,9 @@ export type Database = {
           id: string
           market_share?: number
           phone?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          total_referrals_count?: number
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -332,6 +506,9 @@ export type Database = {
           id?: string
           market_share?: number
           phone?: string
+          referral_code?: string | null
+          referred_by?: string | null
+          total_referrals_count?: number
           town?: string | null
           updated_at?: string
           ward_id?: number | null
@@ -352,6 +529,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      referrals: {
+        Row: {
+          created_at: string
+          id: string
+          referred_user_id: string
+          referrer_id: string
+          reward_amount: number
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referred_user_id: string
+          referrer_id: string
+          reward_amount?: number
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referred_user_id?: string
+          referrer_id?: string
+          reward_amount?: number
+          status?: string
+        }
+        Relationships: []
       }
       subcounties: {
         Row: {
@@ -455,6 +659,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_contact_clicks: {
+        Args: { p_listing_id: string }
+        Returns: undefined
       }
     }
     Enums: {
