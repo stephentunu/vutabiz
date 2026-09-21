@@ -474,6 +474,7 @@ export type Database = {
           phone: string
           referral_code: string | null
           referred_by: string | null
+          sub_county_id: number | null
           total_referrals_count: number
           town: string | null
           updated_at: string
@@ -491,6 +492,7 @@ export type Database = {
           phone?: string
           referral_code?: string | null
           referred_by?: string | null
+          sub_county_id?: number | null
           total_referrals_count?: number
           town?: string | null
           updated_at?: string
@@ -508,6 +510,7 @@ export type Database = {
           phone?: string
           referral_code?: string | null
           referred_by?: string | null
+          sub_county_id?: number | null
           total_referrals_count?: number
           town?: string | null
           updated_at?: string
