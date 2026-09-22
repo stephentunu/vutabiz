@@ -24,6 +24,7 @@ import { Route as StoreUserIdRouteImport } from './routes/store.$userId'
 import { Route as ListingIdRouteImport } from './routes/listing.$id'
 import { Route as DonationsViewRouteImport } from './routes/donations.view'
 import { Route as AuthenticatedSellRouteImport } from './routes/_authenticated/sell'
+import { Route as AuthenticatedMessagesRouteImport } from './routes/_authenticated/messages'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
@@ -101,6 +102,11 @@ const AuthenticatedSellRoute = AuthenticatedSellRouteImport.update({
   path: '/sell',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedMessagesRoute = AuthenticatedMessagesRouteImport.update({
+  id: '/messages',
+  path: '/messages',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/messages': typeof AuthenticatedMessagesRoute
   '/sell': typeof AuthenticatedSellRoute
   '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/thank-you': typeof ThankYouRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/messages': typeof AuthenticatedMessagesRoute
   '/sell': typeof AuthenticatedSellRoute
   '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/thank-you': typeof ThankYouRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/messages': typeof AuthenticatedMessagesRoute
   '/_authenticated/sell': typeof AuthenticatedSellRoute
   '/donations/view': typeof DonationsViewRoute
   '/listing/$id': typeof ListingIdRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/thank-you'
     | '/admin'
     | '/dashboard'
+    | '/messages'
     | '/sell'
     | '/donations/view'
     | '/listing/$id'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/thank-you'
     | '/admin'
     | '/dashboard'
+    | '/messages'
     | '/sell'
     | '/donations/view'
     | '/listing/$id'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/thank-you'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
+    | '/_authenticated/messages'
     | '/_authenticated/sell'
     | '/donations/view'
     | '/listing/$id'
@@ -349,6 +361,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSellRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/messages': {
+      id: '/_authenticated/messages'
+      path: '/messages'
+      fullPath: '/messages'
+      preLoaderRoute: typeof AuthenticatedMessagesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -369,12 +388,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedMessagesRoute: typeof AuthenticatedMessagesRoute
   AuthenticatedSellRoute: typeof AuthenticatedSellRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedMessagesRoute: AuthenticatedMessagesRoute,
   AuthenticatedSellRoute: AuthenticatedSellRoute,
 }
 
