@@ -46,6 +46,44 @@ export type Database = {
           },
         ]
       }
+      conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message_at: string
+          listing_id: string
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          listing_id: string
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          last_message_at?: string
+          listing_id?: string
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       counties: {
         Row: {
           code: number
@@ -308,6 +346,44 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       offers: {
         Row: {
           amount: number
@@ -560,6 +636,47 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          listing_id: string
+          rating: number
+          reviewer_id: string
+          seller_id: string
+          updated_at: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          listing_id: string
+          rating: number
+          reviewer_id: string
+          seller_id: string
+          updated_at?: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string
+          rating?: number
+          reviewer_id?: string
+          seller_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subcounties: {
         Row: {
           county_id: number
@@ -666,6 +783,17 @@ export type Database = {
       increment_contact_clicks: {
         Args: { p_listing_id: string }
         Returns: undefined
+      }
+      is_conversation_participant: {
+        Args: { _conversation_id: string; _user_id: string }
+        Returns: boolean
+      }
+      seller_rating: {
+        Args: { _seller_id: string }
+        Returns: {
+          average: number
+          total: number
+        }[]
       }
     }
     Enums: {
