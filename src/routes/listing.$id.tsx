@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import {
   makeOffer,
   startOrGetConversation,
   sendMessage,
+  getConversationMessages,
   submitReview,
   getSellerReviews,
   reportListingOrUser,
@@ -21,6 +22,7 @@ import { useLanguage } from "@/lib/i18n";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
 import {
+  Loader2,
   MessageCircle,
   Phone,
   Lock,
@@ -119,6 +121,7 @@ function ListingPage() {
   const submit = useServerFn(makeOffer);
   const doStartChat = useServerFn(startOrGetConversation);
   const doSendMessage = useServerFn(sendMessage);
+  const doGetMessages = useServerFn(getConversationMessages);
   const doSubmitReview = useServerFn(submitReview);
   const doGetReviews = useServerFn(getSellerReviews);
   const doReport = useServerFn(reportListingOrUser);
@@ -156,7 +159,10 @@ function ListingPage() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatConvId, setChatConvId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [loadingChatMessages, setLoadingChatMessages] = useState(false);
   const [sendingChat, setSendingChat] = useState(false);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
   const [similarListings, setSimilarListings] = useState<any[]>([]);
 
   // Engagement & Escrow state
@@ -322,31 +328,86 @@ function ListingPage() {
 
   async function handleOpenChat() {
     if (!me) {
-      window.location.href = "/auth";
+      window.location.href = `/auth?next=${encodeURIComponent(`/listing/${id}`)}`;
       return;
     }
+    setChatOpen(true);
+    setLoadingChatMessages(true);
     try {
       const conv = await doStartChat({ data: { listing_id: id } });
       setChatConvId(conv.conversation_id);
-      setChatOpen(true);
+      const msgs = await doGetMessages({ data: { conversation_id: conv.conversation_id } });
+      setChatMessages(msgs || []);
     } catch (err) {
       toast.error("Could not initiate conversation.");
+    } finally {
+      setLoadingChatMessages(false);
     }
   }
 
-  async function handleSendChatMessage() {
-    if (!chatInput.trim() || !chatConvId) return;
+  async function handleSendChatMessage(customText?: string) {
+    const textToSend = (customText ?? chatInput).trim();
+    if (!textToSend || !chatConvId) return;
     setSendingChat(true);
+
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      id: tempId,
+      sender_id: me,
+      content: textToSend,
+      created_at: new Date().toISOString(),
+    };
+    setChatMessages((prev) => [...prev, optimisticMsg]);
+    if (!customText) setChatInput("");
+
     try {
-      await doSendMessage({ data: { conversation_id: chatConvId, content: chatInput.trim() } });
-      setChatInput("");
-      toast.success("Message sent to seller!");
+      await doSendMessage({ data: { conversation_id: chatConvId, content: textToSend } });
+      const msgs = await doGetMessages({ data: { conversation_id: chatConvId } });
+      setChatMessages(msgs || []);
     } catch (err) {
       toast.error("Failed to send message.");
+      setChatMessages((prev) => prev.filter((m) => m.id !== tempId));
     } finally {
       setSendingChat(false);
     }
   }
+
+  // Real-time chat sync
+  useEffect(() => {
+    if (!chatOpen || !chatConvId) return;
+
+    const channel = supabase
+      .channel(`chat-listing-${chatConvId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${chatConvId}`,
+        },
+        (payload) => {
+          if (payload.new && payload.new.sender_id !== me) {
+            setChatMessages((prev) => {
+              if (prev.some((m) => m.id === payload.new.id)) return prev;
+              return [...prev, payload.new];
+            });
+          }
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatOpen, chatConvId, me]);
+
+  // Scroll to bottom of chat when new message arrives
+  useEffect(() => {
+    if (chatOpen && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages, chatOpen]);
 
   async function handleAddReview(e: React.FormEvent) {
     e.preventDefault();
@@ -755,70 +816,143 @@ function ListingPage() {
             )}
 
             {/* Ratings & Reviews Section */}
-            <div className="mt-6 border-t border-border pt-4">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mt-6 border-t border-border pt-4" id="reviews">
+              {/* Section Header */}
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                   <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                  Seller Ratings & Reviews ({reviews.length})
-                  {avgRating && <span className="text-primary font-black ml-1">★ {avgRating}</span>}
+                  Seller Ratings &amp; Reviews
                 </h3>
+                {reviews.length > 0 && (
+                  <span className="text-xs text-muted-foreground">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>
+                )}
               </div>
 
+              {/* Rating Summary Bar */}
+              {reviews.length > 0 && avgRating && (
+                <div className="flex items-center gap-4 mb-5 p-3.5 bg-amber-50/60 border border-amber-100 rounded-xl">
+                  <div className="text-center shrink-0">
+                    <div className="text-3xl font-black text-amber-600">{avgRating}</div>
+                    <div className="flex items-center gap-0.5 justify-center mt-1">
+                      {[1,2,3,4,5].map((s) => (
+                        <Star key={s} className={`h-3 w-3 ${Number(avgRating) >= s ? "fill-amber-500 text-amber-500" : Number(avgRating) >= s - 0.5 ? "fill-amber-300 text-amber-300" : "text-muted-foreground/25"}`} />
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">{reviews.length} {reviews.length === 1 ? "rating" : "ratings"}</div>
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    {[5,4,3,2,1].map((star) => {
+                      const count = reviews.filter((r: any) => Number(r.rating) === star).length;
+                      const pct = reviews.length > 0 ? Math.round((count / reviews.length) * 100) : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-muted-foreground w-3 text-right">{star}</span>
+                          <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500 shrink-0" />
+                          <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                          </div>
+                          <span className="text-[10px] text-muted-foreground w-5">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Individual Review Cards */}
               {reviews.length > 0 ? (
-                <div className="space-y-2 mb-4">
+                <div className="space-y-3 mb-5">
                   {reviews.map((r: any) => (
-                    <div key={r.id} className="bg-card border border-border/60 rounded-xl p-3 shadow-sm text-xs">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-foreground">{r.reviewer?.full_name || "Buyer"}</span>
-                        <div className="flex items-center text-amber-500">
-                          {[...Array(Number(r.rating || 5))].map((_, i) => (
-                            <Star key={i} className="h-3 w-3 fill-amber-500" />
+                    <div key={r.id} className="bg-card border border-border/60 rounded-xl p-3.5 shadow-sm">
+                      <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <div className="h-7 w-7 rounded-full bg-primary/10 text-primary font-extrabold text-xs flex items-center justify-center shrink-0 uppercase">
+                            {(r.reviewer?.full_name || "B")[0]}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-foreground leading-tight">{r.reviewer?.full_name || "Verified Buyer"}</div>
+                            {r.created_at && (
+                              <div className="text-[10px] text-muted-foreground">
+                                {new Date(r.created_at).toLocaleDateString("en-KE", { year: "numeric", month: "short", day: "numeric" })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          {[1,2,3,4,5].map((s) => (
+                            <Star key={s} className={`h-3 w-3 ${Number(r.rating || 5) >= s ? "fill-amber-500 text-amber-500" : "text-muted-foreground/25"}`} />
                           ))}
                         </div>
                       </div>
-                      {r.comment && <p className="text-muted-foreground mt-1">{r.comment}</p>}
+                      {r.comment && <p className="text-xs text-foreground/80 leading-relaxed pl-9">{r.comment}</p>}
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground mb-4">No reviews yet for this seller.</p>
+                <div className="text-center py-6 bg-muted/30 rounded-xl border border-border/50 mb-4">
+                  <Star className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                  <p className="text-xs text-muted-foreground font-semibold">No reviews yet</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-0.5">Be the first to review this seller</p>
+                </div>
               )}
 
-              {/* Leave Review Form */}
-              {me && me !== listing.seller_id && (
-                <form onSubmit={handleAddReview} className="bg-muted/30 border border-border/70 rounded-xl p-3.5 space-y-2.5">
-                  <div className="text-xs font-bold text-foreground">Write a Review</div>
+              {/* Leave a Review Form */}
+              {!me ? (
+                <div className="bg-muted/40 border border-border/60 rounded-xl p-4 text-center">
+                  <Star className="h-5 w-5 text-amber-400 mx-auto mb-1.5" />
+                  <p className="text-xs text-muted-foreground mb-2">Sign in to leave a review</p>
+                  <Link
+                    to="/auth"
+                    search={{ next: `/listing/${id}` }}
+                    className="inline-flex items-center justify-center rounded-lg bg-primary text-white py-1.5 px-4 text-xs font-bold hover:bg-primary-dark transition"
+                  >
+                    Sign In to Review
+                  </Link>
+                </div>
+              ) : me !== listing.seller_id ? (
+                <form onSubmit={handleAddReview} className="bg-muted/30 border border-border/70 rounded-xl p-4 space-y-3">
+                  <div className="text-xs font-extrabold text-foreground">Write a Review</div>
+
+                  {/* Star picker */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">Rating:</span>
+                    <span className="text-xs text-muted-foreground">Your rating:</span>
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <button
                           type="button"
                           key={s}
                           onClick={() => setReviewRating(s)}
-                          className="text-amber-500 focus:outline-none"
+                          className="focus:outline-none transition-transform hover:scale-110"
+                          aria-label={`Rate ${s} star${s > 1 ? "s" : ""}`}
                         >
-                          <Star className={`h-4 w-4 ${reviewRating >= s ? "fill-amber-500" : "stroke-muted-foreground"}`} />
+                          <Star className={`h-5 w-5 transition-colors ${reviewRating >= s ? "fill-amber-500 text-amber-500" : "text-muted-foreground/40 hover:text-amber-400"}`} />
                         </button>
                       ))}
                     </div>
+                    <span className="text-[11px] text-muted-foreground ml-1">
+                      {reviewRating === 1 ? "Poor" : reviewRating === 2 ? "Fair" : reviewRating === 3 ? "Good" : reviewRating === 4 ? "Very Good" : "Excellent"}
+                    </span>
                   </div>
-                  <input
-                    type="text"
+
+                  {/* Comment textarea */}
+                  <textarea
+                    rows={3}
                     value={reviewComment}
                     onChange={(e) => setReviewComment(e.target.value)}
-                    placeholder="Describe your transaction experience with this seller..."
-                    className="w-full rounded-lg border border-input bg-card px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-primary"
+                    placeholder="Describe your experience with this seller — was the item as described? Was delivery prompt? Would you recommend them?"
+                    className="w-full rounded-lg border border-input bg-card px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary resize-none"
                   />
+
                   <button
                     type="submit"
                     disabled={submittingReview}
-                    className="rounded-lg bg-primary text-white text-xs font-bold px-3 py-1.5 hover:bg-primary-dark transition disabled:opacity-60"
+                    className="w-full rounded-lg bg-primary text-white text-xs font-bold px-3 py-2 hover:bg-primary-dark transition disabled:opacity-60 flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    {submittingReview ? "Submitting..." : "Post Review"}
+                    <Star className="h-3.5 w-3.5" />
+                    {submittingReview ? "Submitting…" : "Post Review"}
                   </button>
                 </form>
-              )}
+              ) : null}
             </div>
 
             {/* Similar Listings Carousel/Grid */}
@@ -873,28 +1007,34 @@ function ListingPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2 mt-1">
-                <Link
-                  to="/store/$userId"
-                  params={{ userId: listing.seller_id }}
-                  className="text-xs text-primary underline block"
-                >
-                  Visit seller profile & store
-                </Link>
-                {me && me !== listing.seller_id && (
+              {/* Seller Avg Rating */}
+              {reviews.length > 0 && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <div className="flex items-center gap-0.5">
+                    {[1,2,3,4,5].map((s) => (
+                      <Star key={s} className={`h-3 w-3 ${Number(avgRating) >= s ? "fill-amber-500 text-amber-500" : "text-muted-foreground/30"}`} />
+                    ))}
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-600">{avgRating}</span>
+                  <span className="text-[11px] text-muted-foreground">({reviews.length} {reviews.length === 1 ? "review" : "reviews"})</span>
+                </div>
+              )}
+
+              {me && me !== listing.seller_id && (
+                <div className="mt-2">
                   <button
                     onClick={handleToggleSellerFollow}
-                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full border transition cursor-pointer ${
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full border transition cursor-pointer ${
                       isFollowingSeller
                         ? "bg-primary/10 text-primary-dark border-primary/30"
                         : "bg-muted text-muted-foreground border-border hover:text-foreground"
                     }`}
                   >
                     {isFollowingSeller ? <UserCheck className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                    {isFollowingSeller ? "Following" : "Follow"}
+                    {isFollowingSeller ? "Following" : "Follow Seller"}
                   </button>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             {/* Action buttons: Chat & Contact */}
@@ -1107,47 +1247,153 @@ function ListingPage() {
         {/* In-App Chat Modal */}
         {chatOpen && (
           <div
-            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+            className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-xs p-4"
             onClick={() => setChatOpen(false)}
           >
             <div
-              className="w-full max-w-md rounded-2xl bg-card p-5 shadow-2xl space-y-4"
+              className="w-full max-w-lg rounded-2xl bg-card border border-border shadow-2xl overflow-hidden flex flex-col h-[520px] max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between border-b border-border pb-3">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="h-5 w-5 text-primary" />
-                  <div>
-                    <h3 className="text-sm font-bold">Chat with {seller?.full_name || "Seller"}</h3>
-                    <p className="text-[11px] text-muted-foreground">Re: {listing.title}</p>
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-3.5 border-b border-border/70 bg-muted/20">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm shrink-0 uppercase">
+                    {(seller?.full_name || "S")[0]}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs font-extrabold text-foreground truncate flex items-center gap-1.5">
+                      {seller?.full_name || "Seller"}
+                      {seller?.verification_status === "verified" && (
+                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground truncate">
+                      Re: {listing.title} • KSh {Number(listing.price).toLocaleString()}
+                    </div>
                   </div>
                 </div>
-                <button onClick={() => setChatOpen(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">✕</button>
-              </div>
-
-              <div className="rounded-xl bg-muted/40 p-4 text-xs text-muted-foreground text-center">
-                Send a message directly to the seller's inbox. They will see it on their dashboard.
-              </div>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  autoFocus
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleSendChatMessage();
-                  }}
-                  placeholder="Ask about availability, inspection, price..."
-                  className="flex-1 rounded-xl border border-input bg-card px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary"
-                />
                 <button
-                  onClick={handleSendChatMessage}
-                  disabled={sendingChat || !chatInput.trim()}
-                  className="rounded-xl bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary-dark transition disabled:opacity-60 flex items-center gap-1 cursor-pointer"
+                  onClick={() => setChatOpen(false)}
+                  className="h-8 w-8 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground grid place-items-center transition cursor-pointer"
+                  aria-label="Close chat"
                 >
-                  <Send className="h-3.5 w-3.5" /> Send
+                  ✕
                 </button>
+              </div>
+
+              {/* Message Feed */}
+              <div
+                ref={chatScrollRef}
+                className="flex-1 p-3.5 overflow-y-auto space-y-2.5 bg-muted/10 text-xs"
+              >
+                {loadingChatMessages ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="text-[11px]">Loading conversation...</span>
+                  </div>
+                ) : chatMessages.length === 0 ? (
+                  <div className="text-center py-8 px-4 space-y-2">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 text-primary grid place-items-center mx-auto">
+                      <MessageCircle className="h-5 w-5" />
+                    </div>
+                    <p className="text-xs font-semibold text-foreground">Direct message with seller</p>
+                    <p className="text-[11px] text-muted-foreground max-w-xs mx-auto">
+                      Ask about availability, location for inspection, or negotiate. Your conversation is saved in your Inbox.
+                    </p>
+                  </div>
+                ) : (
+                  chatMessages.map((m: any) => {
+                    const isMe = m.sender_id === me;
+                    return (
+                      <div
+                        key={m.id}
+                        className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                      >
+                        <div
+                          className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-xs leading-relaxed shadow-xs ${
+                            isMe
+                              ? "bg-primary text-white rounded-br-xs"
+                              : "bg-card border border-border/80 text-foreground rounded-bl-xs"
+                          }`}
+                        >
+                          <div className="whitespace-pre-wrap break-words">{m.content}</div>
+                          <div
+                            className={`text-[9px] mt-1 text-right ${
+                              isMe ? "text-white/75" : "text-muted-foreground"
+                            }`}
+                          >
+                            {m.created_at
+                              ? new Date(m.created_at).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
+                              : "Just now"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Quick Suggestion Chips */}
+              <div className="px-3 pt-2 pb-1 border-t border-border/40 bg-card overflow-x-auto flex gap-1.5">
+                {[
+                  "Is this still available?",
+                  "Is the price negotiable?",
+                  "Can I inspect this today?",
+                  "Do you offer delivery?",
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => handleSendChatMessage(chip)}
+                    disabled={sendingChat}
+                    className="shrink-0 text-[10.5px] font-medium bg-muted/50 hover:bg-primary/10 hover:text-primary-dark text-muted-foreground border border-border/60 rounded-full px-2.5 py-1 transition cursor-pointer disabled:opacity-50"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
+              {/* Chat Input Bar */}
+              <div className="p-3 border-t border-border/70 bg-card">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendChatMessage();
+                  }}
+                  className="flex items-center gap-2"
+                >
+                  <input
+                    type="text"
+                    autoFocus
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Type a message to the seller..."
+                    className="flex-1 rounded-xl border border-input bg-background px-3.5 py-2 text-xs outline-none focus:ring-2 focus:ring-primary shadow-xs"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sendingChat || !chatInput.trim()}
+                    className="rounded-xl bg-primary hover:bg-primary-dark text-white px-3.5 py-2 text-xs font-bold transition shadow-xs disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    {sendingChat ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Send className="h-3.5 w-3.5" />
+                    )}
+                    <span>Send</span>
+                  </button>
+                </form>
+                <div className="mt-2 text-center">
+                  <Link
+                    to="/dashboard"
+                    className="text-[10px] text-muted-foreground hover:text-primary transition underline"
+                  >
+                    View all messages in your Dashboard Inbox →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
