@@ -1,11 +1,11 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Header, Footer } from "@/components/site-chrome";
 import { HeartHandshake, Gift, Eye, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/donations")({
-  component: DonationHubLanding,
+  component: DonationRouteComponent,
   head: () => ({
     meta: [
       { title: "Donation Hub — Sokonyumbani" },
@@ -17,6 +17,17 @@ export const Route = createFileRoute("/donations")({
     ],
   }),
 });
+
+function DonationRouteComponent() {
+  const location = useLocation();
+  const isChildRoute = location.pathname !== "/donations" && location.pathname !== "/donations/";
+
+  if (isChildRoute) {
+    return <Outlet />;
+  }
+
+  return <DonationHubLanding />;
+}
 
 function DonationHubLanding() {
   const [signedIn, setSignedIn] = useState(false);

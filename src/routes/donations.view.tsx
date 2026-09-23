@@ -71,8 +71,16 @@ function DonationList() {
       <section className="bg-primary-dark text-white py-6">
         <div className="mx-auto max-w-7xl px-4 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wide">
-              <HeartHandshake className="h-3.5 w-3.5" /> Available Donations
+            <Link
+              to="/donations"
+              className="inline-flex items-center gap-1 text-xs text-white/75 hover:text-white mb-2 font-medium transition"
+            >
+              ← Back to Donation Hub
+            </Link>
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur px-3 py-1 text-xs font-bold uppercase tracking-wide">
+                <HeartHandshake className="h-3.5 w-3.5" /> Available Donations
+              </div>
             </div>
             <h1 className="mt-2 text-2xl md:text-3xl font-extrabold uppercase tracking-tight">
               Donations across Kenya
