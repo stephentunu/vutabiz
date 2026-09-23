@@ -30,6 +30,7 @@ import {
   ShoppingBag,
   Wrench,
   Users,
+  HandCoins,
   HeartHandshake,
   ShieldCheck,
   AlertTriangle,
@@ -309,20 +310,28 @@ function ListingPage() {
 
   async function send() {
     if (!me) {
-      window.location.href = "/auth";
+      window.location.href = `/auth?next=${encodeURIComponent(`/listing/${id}`)}`;
+      return;
+    }
+    if (listing?.listing_type === "donation") {
+      toast.error("Donation items are free and do not accept offers.");
+      return;
+    }
+    if (!amount || amount <= 0) {
+      toast.error("Please enter a valid amount.");
       return;
     }
     setLoading(true);
     try {
       await submit({ data: { listing_id: id, amount, message: msg } });
       toast.success(
-        listing?.listing_type === "service" ? "Quote request sent to seller." : "Offer sent to seller.",
+        listing?.listing_type === "service" ? "Quote request sent to service provider!" : "Offer submitted to seller!",
       );
       await load();
       setMsg("");
       setOfferOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed");
+      toast.error(err instanceof Error ? err.message : "Failed to submit offer");
     } finally {
       setLoading(false);
     }
@@ -1125,56 +1134,114 @@ function ListingPage() {
               )}
             </div>
 
-            {/* Offer / Quote Section */}
-            <div className="border-t border-border pt-3">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                {isService ? "Request a Quote" : "Make an offer"}
+            {/* Offer / Quote Section (Not applicable for free donations) */}
+            {listing.listing_type === "donation" ? (
+              <div className="border-t border-border pt-3">
+                <div className="rounded-xl bg-rose-50 border border-rose-200/80 p-3 text-xs text-rose-800 flex items-start gap-2">
+                  <HeartHandshake className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-[11px] uppercase tracking-wider text-rose-900">Free Donation Item</div>
+                    <p className="text-[11px] text-rose-700 mt-0.5 leading-relaxed">
+                      This item is offered freely to those in need. Offers and pricing do not apply.
+                    </p>
+                  </div>
+                </div>
               </div>
-              {myOffer && (
-                <div
-                  className={`mb-2 rounded px-2.5 py-1.5 text-xs font-semibold ${
-                    myOffer.status === "accepted"
-                      ? "bg-primary/10 text-primary-dark"
-                      : myOffer.status === "rejected"
-                      ? "bg-destructive/10 text-destructive"
-                      : "bg-accent/50 text-foreground"
-                  }`}
-                >
-                  Your {isService ? "quote" : "offer"} of KSh {Number(myOffer.amount).toLocaleString()} is {myOffer.status}.
+            ) : (
+              <div className="border-t border-border pt-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <HandCoins className="h-3.5 w-3.5 text-primary" />
+                  <span>{isService ? "Request a Quote / Rate" : "Make an Offer"}</span>
                 </div>
-              )}
-              {!me ? (
-                <div className="bg-muted/50 rounded-lg p-3 text-center border border-border/50">
-                  <p className="text-[11px] text-muted-foreground mb-2">
-                    You must be signed in to {isService ? "request a quote" : "make an offer"} or contact.
-                  </p>
-                  <Link
-                    to="/auth"
-                    search={{ next: `/listing/${id}` }}
-                    className="inline-flex w-full items-center justify-center rounded-lg bg-primary text-white py-1.5 text-xs font-bold hover:bg-primary-dark transition"
-                  >
-                    Sign In
-                  </Link>
-                </div>
-              ) : (
-                me !== listing.seller_id && (
+
+                {/* Offer Status Display */}
+                {myOffer && (
+                  <div className="mb-2.5">
+                    {myOffer.status === "accepted" ? (
+                      <div className="rounded-xl border border-emerald-200 bg-emerald-50/80 p-2.5 text-xs text-emerald-900">
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="flex items-center gap-1 text-emerald-700">
+                            <CheckCircle2 className="h-3.5 w-3.5" /> {isService ? "Quote Accepted!" : "Offer Accepted!"}
+                          </span>
+                          <span className="font-black text-emerald-700">KSh {Number(myOffer.amount).toLocaleString()}</span>
+                        </div>
+                        <p className="text-[10px] text-emerald-700/80 mt-1">
+                          The seller has accepted your {isService ? "quote request" : "offer"}. You can now arrange payment or pickup.
+                        </p>
+                      </div>
+                    ) : myOffer.status === "rejected" ? (
+                      <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-2.5 text-xs text-destructive">
+                        <div className="flex items-center justify-between font-bold">
+                          <span>{isService ? "Quote Declined" : "Offer Declined"}</span>
+                          <span className="font-black">KSh {Number(myOffer.amount).toLocaleString()}</span>
+                        </div>
+                        <p className="text-[10px] opacity-80 mt-1">
+                          The seller did not accept this amount. You can submit an updated offer below.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-2.5 text-xs text-amber-900">
+                        <div className="flex items-center justify-between font-bold">
+                          <span className="text-amber-800">Pending {isService ? "Quote" : "Offer"}:</span>
+                          <span className="font-black text-amber-700">KSh {Number(myOffer.amount).toLocaleString()}</span>
+                        </div>
+                        <p className="text-[10px] text-amber-700/80 mt-1">
+                          Awaiting seller response. They will be notified on their dashboard.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {!me ? (
+                  <div className="bg-muted/40 rounded-xl p-3 text-center border border-border/60">
+                    <HandCoins className="h-4 w-4 text-primary mx-auto mb-1" />
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Sign in to {isService ? "request a quote" : "make an offer"} on this {isService ? "service" : "item"}.
+                    </p>
+                    <Link
+                      to="/auth"
+                      search={{ next: `/listing/${id}` }}
+                      className="inline-flex w-full items-center justify-center rounded-lg bg-primary text-white py-1.5 text-xs font-bold hover:bg-primary-dark transition shadow-xs"
+                    >
+                      Sign In to {isService ? "Request Quote" : "Make Offer"}
+                    </Link>
+                  </div>
+                ) : me === listing.seller_id ? (
+                  <div className="rounded-xl bg-primary/5 border border-primary/20 p-2.5 text-center text-xs text-primary-dark">
+                    <span className="font-semibold text-[11px]">This is your listing</span>
+                    <Link to="/dashboard" className="block text-[10px] text-primary underline mt-0.5 font-bold">
+                      View received offers on your dashboard →
+                    </Link>
+                  </div>
+                ) : (
                   <>
                     <button
+                      type="button"
                       onClick={() => {
                         setAmount(myOffer ? Number(myOffer.amount) : Number(listing.price));
                         setOfferOpen(true);
                       }}
-                      className="w-full rounded-xl border border-primary text-primary hover:bg-primary/5 px-3 py-2 text-xs font-bold cursor-pointer transition"
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl border-2 border-primary text-primary hover:bg-primary hover:text-white px-3 py-2 text-xs font-extrabold transition shadow-xs cursor-pointer group"
                     >
-                      {isService ? "Request a Quote" : myOffer ? "Change my offer" : "Make an offer"}
+                      <HandCoins className="h-4 w-4" />
+                      <span>
+                        {isService
+                          ? "Request a Quote / Propose Budget"
+                          : myOffer
+                          ? "Change My Offer"
+                          : "Make an Offer"}
+                      </span>
                     </button>
-                    <p className="mt-1.5 text-[10px] text-muted-foreground">
-                      The seller sees your offer on their dashboard and can accept it.
+                    <p className="mt-1.5 text-[10px] text-muted-foreground text-center">
+                      {isService
+                        ? "Propose your budget. The service provider will review your request."
+                        : "Name your price. The seller can accept, decline, or counter."}
                     </p>
                   </>
-                )
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
             {/* Safety Tips Card */}
             <div className="border-t border-border pt-3 rounded-xl bg-amber-500/5 p-3 border border-amber-500/20">
@@ -1206,74 +1273,131 @@ function ListingPage() {
         {/* Offer / Quote Modal */}
         {offerOpen && (
           <div
-            className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+            className="fixed inset-0 z-50 grid place-items-center bg-black/60 backdrop-blur-xs p-4"
             onClick={() => !loading && setOfferOpen(false)}
           >
             <div
-              className="w-full max-w-sm rounded-xl bg-card p-4 shadow-xl"
+              className="w-full max-w-sm rounded-2xl bg-card border border-border p-5 shadow-2xl space-y-3.5"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h2 className="text-sm font-extrabold text-primary-dark">
-                    {isService ? "Request a quote" : "Make an offer"}
-                  </h2>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{listing.title}</p>
+              <div className="flex items-start justify-between gap-2 border-b border-border/80 pb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 text-primary grid place-items-center shrink-0">
+                    <HandCoins className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-extrabold text-primary-dark">
+                      {isService ? "Request a Quote" : "Make an Offer"}
+                    </h2>
+                    <p className="text-[11px] text-muted-foreground truncate max-w-[210px]">{listing.title}</p>
+                  </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setOfferOpen(false)}
-                  className="text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground text-xs font-bold cursor-pointer h-7 w-7 rounded-full hover:bg-muted grid place-items-center"
                   aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="mt-3">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  {isService ? "Your budget (KSh)" : "Amount you are willing to pay (KSh)"}
+              {/* Price comparison & input */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] bg-muted/30 p-2 rounded-lg border border-border/50">
+                  <span className="font-semibold text-muted-foreground">
+                    {isService ? "Asking Rate:" : "Listed Asking Price:"}
+                  </span>
+                  <span className="font-extrabold text-foreground">
+                    KSh {Number(listing.price).toLocaleString()}
+                    {priceSuffix}
+                  </span>
+                </div>
+
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-2">
+                  {isService ? "Your Budget / Proposed Fee (KSh)" : "Your Offer Amount (KSh)"}
                 </label>
-                <input
-                  type="number"
-                  min={1}
-                  autoFocus
-                  value={amount || ""}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="e.g. 4500"
-                  className="mt-1 w-full rounded border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
-                />
-                <p className="mt-1 text-[10px] text-muted-foreground">
-                  Asking price: KSh {Number(listing.price).toLocaleString()}
-                </p>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">KSh</span>
+                  <input
+                    type="number"
+                    min={1}
+                    autoFocus
+                    value={amount || ""}
+                    onChange={(e) => setAmount(Number(e.target.value))}
+                    placeholder="e.g. 4500"
+                    className="w-full rounded-xl border border-input bg-background pl-12 pr-3 py-2 text-sm font-extrabold text-primary outline-none focus:ring-2 focus:ring-primary shadow-xs"
+                  />
+                </div>
+
+                {/* Quick discount chips for items */}
+                {!isService && Number(listing.price) > 0 && (
+                  <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                    {[
+                      { label: "-5%", factor: 0.95 },
+                      { label: "-10%", factor: 0.90 },
+                      { label: "-15%", factor: 0.85 },
+                      { label: "Asking", factor: 1.0 },
+                    ].map((chip) => {
+                      const chipAmount = Math.round(Number(listing.price) * chip.factor);
+                      return (
+                        <button
+                          key={chip.label}
+                          type="button"
+                          onClick={() => setAmount(chipAmount)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition cursor-pointer ${
+                            amount === chipAmount
+                              ? "bg-primary text-white border-primary"
+                              : "bg-muted/40 text-muted-foreground border-border hover:bg-muted hover:text-foreground"
+                          }`}
+                        >
+                          {chip.label} ({chipAmount.toLocaleString()})
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
-              <div className="mt-2.5">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Message {isService ? "" : "(optional)"}
+              {/* Message */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1">
+                  {isService ? "Job Requirements / Notes" : "Note for Seller (Optional)"}
                 </label>
                 <textarea
                   value={msg}
                   onChange={(e) => setMsg(e.target.value)}
                   rows={3}
-                  placeholder={isService ? "Describe the job / requirements" : "Add a note for the seller"}
-                  className="mt-1 w-full rounded border border-input bg-white px-2.5 py-2 outline-none focus:ring-2 focus:ring-primary text-xs"
+                  placeholder={
+                    isService
+                      ? "Describe the specific tasks, expected timeline, location, or materials..."
+                      : "e.g. Can pick up today, payment ready on inspection..."
+                  }
+                  className="w-full rounded-xl border border-input bg-background px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary resize-none shadow-xs"
                 />
               </div>
 
-              <div className="mt-3 flex gap-2">
+              <div className="flex gap-2 pt-1">
                 <button
+                  type="button"
                   onClick={() => setOfferOpen(false)}
                   disabled={loading}
-                  className="flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition cursor-pointer disabled:opacity-60"
+                  className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-xs font-bold text-foreground hover:bg-muted transition cursor-pointer disabled:opacity-60"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   disabled={loading || !amount || amount <= 0}
                   onClick={send}
-                  className="flex-1 rounded-lg bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold transition cursor-pointer disabled:opacity-60"
+                  className="flex-1 rounded-xl bg-primary hover:bg-primary-dark text-white px-3 py-2 text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  {loading ? "Sending…" : isService ? "Send request" : "Send offer"}
+                  {loading ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <HandCoins className="h-3.5 w-3.5" />
+                  )}
+                  <span>{loading ? "Submitting…" : isService ? "Send Request" : "Send Offer"}</span>
                 </button>
               </div>
             </div>

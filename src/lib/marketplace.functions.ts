@@ -216,12 +216,14 @@ export const makeOffer = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: listing } = await context.supabase
       .from("listings")
-      .select("seller_id, status")
+      .select("seller_id, status, listing_type")
       .eq("id", data.listing_id)
       .single();
     if (!listing || listing.status !== "active") throw new Error("Listing unavailable");
     if (listing.seller_id === context.userId)
       throw new Error("You cannot offer on your own listing");
+    if (listing.listing_type === "donation")
+      throw new Error("Donation items are free and do not accept offers");
     const { data: row, error } = await context.supabase
       .from("offers")
       .insert({
