@@ -6,6 +6,8 @@ import { makeOffer } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
 import { MessageCircle, Phone, Lock, MapPin, ShoppingBag, Wrench, Users, HeartHandshake } from "lucide-react";
+import { ChatWithSeller } from "@/components/chat-with-seller";
+import { SellerReviews } from "@/components/seller-reviews";
 
 export const Route = createFileRoute("/listing/$id")({
   component: ListingPage,
@@ -254,6 +256,7 @@ function ListingPage() {
               </div>
             )}
 
+            <SellerReviews sellerId={listing.seller_id} listingId={listing.id} currentUserId={me} />
           </div>
 
           <aside className="bg-card rounded-xl shadow ring-1 ring-black/5 p-4.5 h-fit sticky top-20">
@@ -261,13 +264,16 @@ function ListingPage() {
               Seller
             </div>
             <div className="mt-0.5 text-base font-bold">{seller?.full_name ?? "—"}</div>
-            <Link
-              to="/store/$userId"
-              params={{ userId: listing.seller_id }}
-              className="text-xs text-primary underline"
-            >
-              Visit store
-            </Link>
+            <div className="mt-2">
+              <ChatWithSeller
+                listingId={listing.id}
+                listingTitle={listing.title}
+                sellerId={listing.seller_id}
+                sellerName={seller?.full_name ?? "the seller"}
+                meId={me}
+              />
+            </div>
+
 
             <div className="mt-3">
               {contactVisible ? (

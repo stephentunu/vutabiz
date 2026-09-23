@@ -82,7 +82,7 @@ export function Header() {
     { to: "/", label: "Home" },
     { to: "/browse", label: "Browse" },
     { to: "/donations", label: "Donation Hub" },
-    ...(email ? [{ to: "/dashboard", label: "Dashboard" }] : []),
+    ...(email ? [{ to: "/dashboard", label: "Dashboard" }, { to: "/messages", label: "Messages" }] : []),
     ...(isAdmin ? [{ to: "/admin", label: "Admin" }] : []),
   ];
 
