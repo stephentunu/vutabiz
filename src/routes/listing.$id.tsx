@@ -36,6 +36,7 @@ import {
   Star,
   Flag,
   Eye,
+  EyeOff,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -163,6 +164,7 @@ function ListingPage() {
   const [loadingChatMessages, setLoadingChatMessages] = useState(false);
   const [sendingChat, setSendingChat] = useState(false);
   const chatScrollRef = useRef<HTMLDivElement>(null);
+  const [showContact, setShowContact] = useState(false);
   const [similarListings, setSimilarListings] = useState<any[]>([]);
 
   // Engagement & Escrow state
@@ -541,7 +543,6 @@ function ListingPage() {
     );
 
   const accepted = myOffer?.status === "accepted";
-  const contactVisible = accepted || me === listing.seller_id;
   const typeConfig = listing.listing_type ? LISTING_TYPE_CONFIG[listing.listing_type] : null;
   const priceSuffix =
     listing.listing_type === "service" && listing.work_rate_type
@@ -1058,33 +1059,68 @@ function ListingPage() {
                 </button>
               )}
 
-              {contactVisible ? (
-                <div className="space-y-1.5">
-                  <a
-                    href={`tel:${seller?.phone}`}
-                    onClick={handleTrackContactClick}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary-dark text-white px-3 py-2 text-xs font-bold"
-                  >
-                    <Phone className="h-3.5 w-3.5" /> Call {seller?.phone}
-                  </a>
-                  <a
-                    href={`https://wa.me/${(seller?.phone ?? "").replace(/\D/g, "")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={handleTrackContactClick}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-white ring-1 ring-primary text-primary px-3 py-2 text-xs font-bold hover:bg-primary/5"
-                  >
-                    <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
-                  </a>
-                </div>
+              {/* Show/Hide Contact Feature */}
+              {!showContact ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowContact(true);
+                    handleTrackContactClick();
+                  }}
+                  className="w-full flex items-center justify-between rounded-xl bg-primary-dark hover:bg-primary text-white px-3.5 py-2.5 text-xs font-bold transition shadow-sm cursor-pointer group"
+                  title="Click to view seller contact"
+                >
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-white" />
+                    <span className="font-extrabold tracking-wider uppercase text-xs">CONTACT</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] font-semibold bg-white/15 group-hover:bg-white/25 px-2 py-0.5 rounded-md transition">
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Show</span>
+                  </div>
+                </button>
               ) : (
-                <div className="rounded-xl bg-muted/60 p-3 text-xs text-muted-foreground flex items-start gap-1.5 border border-border/50">
-                  <Lock className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                  <span>
-                    {isService
-                      ? "Contact unlocks after the seller accepts your quote request."
-                      : "Contact phone unlocks after the seller accepts your offer."}
-                  </span>
+                <div className="space-y-1.5 animate-in fade-in duration-200">
+                  {/* Clicking the contact hides the contact */}
+                  <button
+                    type="button"
+                    onClick={() => setShowContact(false)}
+                    className="w-full flex items-center justify-between rounded-xl bg-primary-dark text-white px-3.5 py-2.5 text-xs font-bold transition shadow-sm cursor-pointer hover:bg-primary group"
+                    title="Click to hide contact"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-emerald-400" />
+                      <span className="font-extrabold tracking-wider text-xs">
+                        {seller?.phone || "No phone provided"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 text-[11px] font-semibold bg-white/15 group-hover:bg-white/25 px-2 py-0.5 rounded-md transition">
+                      <EyeOff className="h-3.5 w-3.5" />
+                      <span>Hide</span>
+                    </div>
+                  </button>
+
+                  {/* Direct Call & WhatsApp buttons */}
+                  {seller?.phone && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <a
+                        href={`tel:${seller.phone}`}
+                        onClick={handleTrackContactClick}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-bold transition shadow-sm"
+                      >
+                        <Phone className="h-3.5 w-3.5" /> Call
+                      </a>
+                      <a
+                        href={`https://wa.me/${seller.phone.replace(/\D/g, "")}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={handleTrackContactClick}
+                        className="flex items-center justify-center gap-1.5 rounded-xl bg-white ring-1 ring-emerald-600 text-emerald-700 hover:bg-emerald-50 px-3 py-2 text-xs font-bold transition shadow-sm"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
