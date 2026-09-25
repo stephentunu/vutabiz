@@ -24,6 +24,7 @@ import {
   getMyReferralInfo,
   getSellerAnalytics,
   renewListing,
+  getSellerReviews,
 } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
@@ -60,6 +61,7 @@ import {
   Users,
   AlertTriangle,
   RotateCw,
+  Star,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({ component: Dashboard });
@@ -124,7 +126,7 @@ function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userId, setUserId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<
-    "listings" | "offers" | "inbox" | "orders" | "analytics" | "favorites" | "referrals" | "wallet" | "verification" | "saved" | "bulk"
+    "listings" | "offers" | "inbox" | "orders" | "analytics" | "favorites" | "referrals" | "wallet" | "verification" | "saved" | "bulk" | "feedback"
   >("listings");
   const [listingTypeFilter, setListingTypeFilter] = useState<"" | "sale" | "hire" | "service" | "donation">("");
 
@@ -151,12 +153,27 @@ function Dashboard() {
   const doGetReferrals = useServerFn(getMyReferralInfo);
   const doGetAnalytics = useServerFn(getSellerAnalytics);
   const doRenewListing = useServerFn(renewListing);
+  const doGetReviews = useServerFn(getSellerReviews);
 
   // Feature states
   const [orders, setOrders] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [referralInfo, setReferralInfo] = useState<any>(null);
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [feedback, setFeedback] = useState<{
+    reviews: Array<{
+      id: string;
+      rating: number;
+      comment: string | null;
+      created_at: string;
+      reviewer: { full_name: string; avatar_url: string | null };
+      listing: { id: string; title: string; image_url: string | null } | null;
+    }>;
+    averageRating: number;
+    totalReviews: number;
+  }>({ reviews: [], averageRating: 0, totalReviews: 0 });
+  const [feedbackListingFilter, setFeedbackListingFilter] = useState<string>("");
+  const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [disputeModalOrder, setDisputeModalOrder] = useState<any | null>(null);
   const [disputeReason, setDisputeReason] = useState("item_not_received");
   const [disputeDetails, setDisputeDetails] = useState("");
@@ -267,8 +284,14 @@ function Dashboard() {
       doGetReferrals().then(setReferralInfo).catch(console.error);
     } else if (activeTab === "analytics") {
       doGetAnalytics().then(setAnalyticsData).catch(console.error);
+    } else if (activeTab === "feedback" && userId) {
+      setLoadingFeedback(true);
+      doGetReviews({ data: { seller_id: userId } })
+        .then((res) => setFeedback(res as typeof feedback))
+        .catch(console.error)
+        .finally(() => setLoadingFeedback(false));
     }
-  }, [activeTab]);
+  }, [activeTab, userId]);
 
   // Load messages for selected conversation
   useEffect(() => {
@@ -486,6 +509,7 @@ function Dashboard() {
               { id: "bulk", label: "Bulk CSV", count: null, icon: FileSpreadsheet },
               { id: "orders", label: "Orders & Escrow", count: null, icon: Truck },
               { id: "analytics", label: "Analytics", count: null, icon: BarChart3 },
+              { id: "feedback", label: "Feedback", count: feedback.totalReviews, icon: Star },
               { id: "favorites", label: "Favorites", count: null, icon: Heart },
               { id: "referrals", label: "Refer & Earn", count: null, icon: Users },
             ].map((t) => {
@@ -1300,6 +1324,175 @@ function Dashboard() {
               )}
             </div>
           )}
+
+          {/* Feedback Tab — buyer feedback & ratings left on this seller's adverts */}
+          {activeTab === "feedback" && (() => {
+            const filteredReviews = feedbackListingFilter
+              ? feedback.reviews.filter((r) => r.listing?.id === feedbackListingFilter)
+              : feedback.reviews;
+            const reviewedListings = Array.from(
+              new Map(
+                feedback.reviews
+                  .filter((r) => r.listing)
+                  .map((r) => [r.listing!.id, r.listing!]),
+              ).values(),
+            );
+
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <Star className="h-4 w-4 text-amber-500" />
+                  <h3 className="font-bold text-sm">Buyer Feedback</h3>
+                </div>
+
+                {loadingFeedback ? (
+                  <div className="text-center py-12 bg-card rounded-xl border border-border/40 text-xs text-muted-foreground">
+                    Loading feedback…
+                  </div>
+                ) : feedback.totalReviews === 0 ? (
+                  <div className="text-center py-12 bg-card rounded-xl border border-border/40">
+                    <Star className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                    <p className="text-xs font-semibold text-muted-foreground">No feedback yet</p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                      Buyers can leave feedback and ratings after viewing any of your adverts.
+                      It will show up here as soon as it comes in.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Rating summary */}
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 p-4 bg-amber-50/60 border border-amber-100 rounded-xl">
+                      <div className="text-center shrink-0 sm:pr-4 sm:border-r sm:border-amber-200/70">
+                        <div className="text-3xl font-black text-amber-600">{feedback.averageRating}</div>
+                        <div className="flex items-center gap-0.5 justify-center mt-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`h-3.5 w-3.5 ${
+                                feedback.averageRating >= s
+                                  ? "fill-amber-500 text-amber-500"
+                                  : feedback.averageRating >= s - 0.5
+                                    ? "fill-amber-300 text-amber-300"
+                                    : "text-muted-foreground/25"
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">
+                          {feedback.totalReviews} {feedback.totalReviews === 1 ? "rating" : "ratings"}
+                        </div>
+                      </div>
+                      <div className="flex-1 space-y-1">
+                        {[5, 4, 3, 2, 1].map((star) => {
+                          const count = feedback.reviews.filter((r) => Number(r.rating) === star).length;
+                          const pct = feedback.totalReviews > 0 ? Math.round((count / feedback.totalReviews) * 100) : 0;
+                          return (
+                            <div key={star} className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-muted-foreground w-3 text-right">{star}</span>
+                              <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500 shrink-0" />
+                              <div className="flex-1 h-1.5 bg-amber-100 rounded-full overflow-hidden">
+                                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground w-5">{count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Filter by advert */}
+                    {reviewedListings.length > 1 && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-[11px] font-semibold text-muted-foreground shrink-0">Filter by advert:</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            onClick={() => setFeedbackListingFilter("")}
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition cursor-pointer ${
+                              feedbackListingFilter === ""
+                                ? "bg-primary text-white"
+                                : "bg-muted text-muted-foreground hover:text-foreground"
+                            }`}
+                          >
+                            All adverts
+                          </button>
+                          {reviewedListings.map((l) => (
+                            <button
+                              key={l.id}
+                              onClick={() => setFeedbackListingFilter(l.id)}
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-bold transition truncate max-w-[160px] cursor-pointer ${
+                                feedbackListingFilter === l.id
+                                  ? "bg-primary text-white"
+                                  : "bg-muted text-muted-foreground hover:text-foreground"
+                              }`}
+                              title={l.title}
+                            >
+                              {l.title}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Feedback list */}
+                    <div className="space-y-3">
+                      {filteredReviews.map((r) => (
+                        <div key={r.id} className="bg-card border border-border/60 rounded-xl p-3.5 shadow-sm">
+                          <div className="flex items-start justify-between gap-2 mb-1.5">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="h-7 w-7 rounded-full bg-primary/10 text-primary font-extrabold text-xs flex items-center justify-center shrink-0 uppercase">
+                                {(r.reviewer?.full_name || "B")[0]}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-xs font-bold text-foreground leading-tight truncate">
+                                  {r.reviewer?.full_name || "Verified Buyer"}
+                                </div>
+                                {r.created_at && (
+                                  <div className="text-[10px] text-muted-foreground">
+                                    {new Date(r.created_at).toLocaleDateString("en-KE", {
+                                      year: "numeric",
+                                      month: "short",
+                                      day: "numeric",
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-0.5 shrink-0">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Star
+                                  key={s}
+                                  className={`h-3 w-3 ${
+                                    Number(r.rating || 5) >= s ? "fill-amber-500 text-amber-500" : "text-muted-foreground/25"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {r.comment && (
+                            <p className="text-xs text-foreground/80 leading-relaxed pl-9 mb-2">{r.comment}</p>
+                          )}
+
+                          {r.listing && (
+                            <Link
+                              to="/listing/$id"
+                              params={{ id: r.listing.id }}
+                              className="ml-9 inline-flex items-center gap-1.5 text-[10px] font-semibold text-primary hover:text-primary-dark transition bg-primary/5 border border-primary/15 rounded-full px-2 py-1 max-w-[calc(100%-2.25rem)]"
+                            >
+                              {r.listing.image_url && (
+                                <img src={r.listing.image_url} alt="" className="h-3.5 w-3.5 rounded-full object-cover shrink-0" />
+                              )}
+                              <span className="truncate">On: {r.listing.title}</span>
+                            </Link>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Favorites Tab */}
           {activeTab === "favorites" && (

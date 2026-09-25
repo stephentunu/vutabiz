@@ -831,7 +831,7 @@ function ListingPage() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
                   <Star className="h-4 w-4 text-amber-500 fill-amber-500" />
-                  Seller Ratings &amp; Reviews
+                  Buyer Feedback &amp; Ratings
                 </h3>
                 {reviews.length > 0 && (
                   <span className="text-xs text-muted-foreground">{reviews.length} {reviews.length === 1 ? "review" : "reviews"}</span>

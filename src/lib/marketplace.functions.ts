@@ -577,7 +577,7 @@ export const getSellerReviews = createServerFn({ method: "POST" })
 
     const { data: reviews, error } = await sb
       .from("reviews")
-      .select("id, rating, comment, created_at, reviewer_id")
+      .select("id, listing_id, rating, comment, created_at, reviewer_id")
       .eq("seller_id", data.seller_id)
       .order("created_at", { ascending: false });
 
@@ -595,9 +595,25 @@ export const getSellerReviews = createServerFn({ method: "POST" })
       });
     }
 
+    // Attach the advert (listing) each piece of feedback was left on, so it can
+    // be attributed correctly wherever reviews are displayed (e.g. the seller
+    // dashboard, which shows feedback across many adverts at once).
+    const listingIds = Array.from(new Set((reviews || []).map((r) => r.listing_id).filter(Boolean)));
+    let listingMap: Record<string, { id: string; title: string; image_url: string | null }> = {};
+    if (listingIds.length > 0) {
+      const { data: lst } = await sb
+        .from("listings")
+        .select("id, title, image_url")
+        .in("id", listingIds);
+      (lst || []).forEach((l) => {
+        listingMap[l.id] = { id: l.id, title: l.title, image_url: l.image_url };
+      });
+    }
+
     const items = (reviews || []).map((r) => ({
       ...r,
       reviewer: reviewerMap[r.reviewer_id] || { full_name: "Buyer", avatar_url: null },
+      listing: listingMap[r.listing_id] || null,
     }));
 
     const totalReviews = items.length;
