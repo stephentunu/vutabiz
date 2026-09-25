@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { computeAdFee, createListing, payListingAd, initiateDarajaStkPush, payWithWallet } from "@/lib/marketplace.functions";
 import { Header, Footer } from "@/components/site-chrome";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Sparkles, Flame, X, UploadCloud, Smartphone, Wallet } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronLeft, ChevronRight, Sparkles, Flame, X, UploadCloud, Smartphone, Wallet, ArrowRight, RefreshCw } from "lucide-react";
 import { STATIC_SUB_COUNTIES } from "@/lib/location-data";
 import { SKILL_CATEGORIES, SERVICE_CATEGORIES, CONSTRUCTION_SUB_CATEGORIES, CONSTRUCTION_SLUGS } from "@/lib/skills-data";
 import { CATEGORY_TREE } from "@/lib/category-tree";
@@ -123,8 +123,11 @@ function SellPage() {
   const [mpesa, setMpesa] = useState("");
   const [stkPhone, setStkPhone] = useState("");
   const [pushingStk, setPushingStk] = useState(false);
+  const [stkSent, setStkSent] = useState(false);
+  const [stkCustomerMessage, setStkCustomerMessage] = useState("");
   const [payingWithWallet, setPayingWithWallet] = useState(false);
   const [myWalletBalance, setMyWalletBalance] = useState<number>(0);
+  const [boosting, setBoosting] = useState(false);
 
   useEffect(() => {
     supabase
@@ -173,12 +176,15 @@ function SellPage() {
 
     supabase.auth.getUser().then(({ data }) => {
       if (data.user)
-        supabase.from("profiles").select("county_id,ward_id,town,phone").eq("id", data.user.id).maybeSingle().then(({ data: p }) => {
+        supabase.from("profiles").select("county_id,ward_id,town,phone,wallet_balance").eq("id", data.user.id).maybeSingle().then(({ data: p }) => {
           if (p) {
             setCountyId(p.county_id ?? "");
             setWardId(p.ward_id ?? "");
             setTown(p.town ?? "");
-            setContactPhone((p as { phone?: string | null }).phone ?? "");
+            const phone = (p as { phone?: string | null }).phone ?? "";
+            setContactPhone(phone);
+            setStkPhone(phone);
+            setMyWalletBalance(Number((p as any)?.wallet_balance ?? 0));
           }
         });
     });
@@ -188,12 +194,21 @@ function SellPage() {
     if (!price || !countyId) { setFee(null); return; }
     const t = setTimeout(async () => {
       try {
-        const res = await compute({ data: { price, county_id: Number(countyId), distance_km: distance, risk, duration_days: days } });
+        const res = await compute({
+          data: {
+            price,
+            county_id: Number(countyId),
+            distance_km: distance,
+            risk,
+            duration_days: days,
+            promotion_tier: promotionTier,
+          },
+        });
         setFee(res.fee);
       } catch { /* ignore */ }
     }, 300);
     return () => clearTimeout(t);
-  }, [price, countyId, distance, risk, days, compute]);
+  }, [price, countyId, distance, risk, days, promotionTier, compute]);
 
   const subCountiesForCounty = subCounties.filter((sc) => sc.county_id === Number(countyId));
   const wardsForSubCounty = wards.filter(
@@ -357,14 +372,24 @@ function SellPage() {
           donation_recipient: listingType === "donation" ? donationRecipient || null : null,
         },
       });
-      setCreatedId(res.id);
-      setFee(res.ad_fee_ksh);
-      if (listingType === "donation" || res.ad_fee_ksh === 0) {
-        toast.success("Posted! Thank you.");
+      if (listingType === "donation") {
+        toast.success("Donation listing posted! Thank you.");
         navigate({ to: "/thank-you", search: { url: `/listing/${res.id}`, listing: res.id } });
         return;
       }
-      toast.success("Listing created. Please choose payment method to publish.");
+
+      setCreatedId(res.id);
+      setFee(res.ad_fee_ksh);
+      if (!stkPhone && contactPhone) {
+        setStkPhone(contactPhone);
+      }
+      setStkSent(false);
+
+      if (res.ad_fee_ksh === 0) {
+        toast.success("Listing created! Standard listing is free.");
+      } else {
+        toast.success("Listing saved. Please complete payment to activate boost.");
+      }
     } catch (err) {
       console.error("Listing submission failed:", err);
       const msg = err instanceof Error ? err.message : String(err);
@@ -389,13 +414,13 @@ function SellPage() {
           listing_id: createdId,
         },
       });
+      setStkSent(true);
+      setStkCustomerMessage(
+        res.customerMessage ||
+          `STK prompt sent to ${stkPhone} for KSh ${fee || 100}. Please enter your M-Pesa PIN.`
+      );
       toast.success(res.customerMessage || "STK PIN prompt sent to your phone!");
-      if (res.isSimulated) {
-        toast.info("Dev simulation: Auto-verifying in 3s...");
-        setTimeout(() => {
-          navigate({ to: "/thank-you", search: { url: `/listing/${createdId}`, listing: createdId } });
-        }, 3000);
-      }
+      // Dedicated, calm status screen — user stays in control and clicks "I Have Completed Payment"
     } catch (err: any) {
       toast.error(err.message || "STK push failed.");
     } finally {
@@ -403,17 +428,31 @@ function SellPage() {
     }
   }
 
+  function handlePaymentDone() {
+    if (!createdId) return;
+    toast.success("Payment confirmed! Your listing is now live.");
+    navigate({ to: "/thank-you", search: { url: `/listing/${createdId}`, listing: createdId } });
+  }
+
   async function handlePayWithWallet() {
     if (!createdId) return;
+    const requiredAmount = fee || 100;
+    if (myWalletBalance < requiredAmount) {
+      toast.error(
+        `Insufficient wallet balance (KSh ${myWalletBalance.toLocaleString()}). Required: KSh ${requiredAmount.toLocaleString()}`
+      );
+      return;
+    }
     setPayingWithWallet(true);
     try {
       await doPayWallet({
         data: {
           listing_id: createdId,
-          amount: fee || 100,
+          amount: requiredAmount,
           purpose: `Ad fee for ${title}`,
         },
       });
+      setMyWalletBalance((prev) => Math.max(0, prev - requiredAmount));
       toast.success("Paid successfully using wallet balance!");
       navigate({ to: "/thank-you", search: { url: `/listing/${createdId}`, listing: createdId } });
     } catch (err: any) {
@@ -853,79 +892,201 @@ function SellPage() {
             </>
           ) : (
             <div className="mt-4 bg-card rounded-xl shadow ring-1 ring-black/5 p-5 space-y-4">
-              <div className="flex items-center gap-2 text-primary-dark">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                <h2 className="text-base font-bold">Listing saved — complete payment</h2>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Total Ad Fee: <b className="text-primary-dark text-sm">KSh {fee}</b> (includes {promotionTier} boost)
-              </p>
-
-              {/* Option 1: Instant M-Pesa STK Push */}
-              <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
-                <div className="text-xs font-bold text-primary-dark flex items-center gap-1.5">
-                  <Smartphone className="h-4 w-4 text-primary" /> Instant M-Pesa Prompt (STK Push)
-                </div>
-                <p className="text-[11px] text-muted-foreground">Enter your Safaricom number to receive a PIN prompt on your phone.</p>
-                <div className="flex gap-2">
-                  <input
-                    type="tel"
-                    value={stkPhone}
-                    onChange={(e) => setStkPhone(e.target.value)}
-                    placeholder="e.g. 0712345678"
-                    className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary font-semibold"
-                  />
-                  <button
-                    disabled={pushingStk || !stkPhone}
-                    onClick={handleTriggerStk}
-                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold transition disabled:opacity-60 cursor-pointer"
-                  >
-                    {pushingStk ? "Sending prompt..." : "Send M-Pesa Prompt"}
-                  </button>
-                </div>
-              </div>
-
-              {/* Option 2: Pay with Wallet */}
-              <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                    <Wallet className="h-4 w-4 text-primary" /> Pay with VutaBiz Wallet
+              {fee === 0 ? (
+                /* ── Standard Free Ad Confirmation ── */
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-full bg-emerald-100 grid place-items-center text-emerald-600 flex-shrink-0">
+                      <CheckCircle2 className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-foreground">Your Listing is Live!</h2>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Standard listing fee: <b className="text-emerald-600 font-bold">KSh 0 (FREE)</b>
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">Instant activation. No transaction fees.</div>
-                </div>
-                <button
-                  disabled={payingWithWallet}
-                  onClick={handlePayWithWallet}
-                  className="rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary-dark transition disabled:opacity-60 cursor-pointer"
-                >
-                  {payingWithWallet ? "Processing..." : "Pay from Wallet"}
-                </button>
-              </div>
 
-              {/* Option 3: Manual Paybill */}
-              <div className="border-t border-border pt-3 space-y-2">
-                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Or Pay Manually via Paybill</div>
-                <p className="text-xs text-muted-foreground">
-                  Paybill: <b>247247</b>, Account: <b>{createdId.slice(0, 8)}</b>, then enter the M-Pesa code:
-                </p>
-                <div className="flex gap-2">
-                  <input
-                    value={mpesa}
-                    onChange={(e) => setMpesa(e.target.value.toUpperCase())}
-                    placeholder="e.g. QK7XX8Y9ZA"
-                    className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary uppercase font-mono"
-                  />
-                  <button
-                    disabled={loading || !mpesa}
-                    onClick={payAd}
-                    className="rounded-lg bg-primary-dark text-white px-4 py-2 text-sm font-bold disabled:opacity-60 cursor-pointer"
-                  >
-                    Confirm
-                  </button>
-                </div>
-              </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Your advert has been published across Kenya at no cost. You can view your listing right now, or choose an optional visibility boost below to get up to 5x more buyer inquiries.
+                  </p>
 
-              <Link to="/dashboard" className="inline-block text-xs text-primary underline">Skip payment for now (saved as draft)</Link>
+                  <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: "/thank-you", search: { url: `/listing/${createdId}`, listing: createdId } })}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary-dark hover:bg-primary text-white px-5 py-3 text-xs font-bold transition shadow cursor-pointer"
+                    >
+                      Continue to My Listing <ArrowRight className="h-4 w-4" />
+                    </button>
+                    <Link
+                      to="/dashboard"
+                      className="inline-flex items-center justify-center rounded-xl bg-white border border-border text-foreground hover:bg-muted/50 px-4 py-3 text-xs font-bold transition"
+                    >
+                      Go to Dashboard
+                    </Link>
+                  </div>
+
+                  {/* Optional Boost Upgrades */}
+                  <div className="pt-4 border-t border-border space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Sparkles className="h-4 w-4 text-amber-500" /> Want More Views? (Optional Boost)
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">Instant activation</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      {[
+                        { id: "boosted", label: "Boosted", cost: 100, desc: "Top of category" },
+                        { id: "urgent", label: "Urgent", cost: 150, desc: "Red urgent badge" },
+                        { id: "featured", label: "Featured", cost: 200, desc: "Homepage banner" },
+                      ].map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setFee(t.cost);
+                            setPromotionTier(t.id as any);
+                            setStkSent(false);
+                          }}
+                          className="p-2.5 rounded-xl border border-border hover:border-primary/50 bg-muted/20 hover:bg-primary/5 text-left transition cursor-pointer"
+                        >
+                          <div className="text-xs font-bold flex items-center justify-between">
+                            <span>{t.label}</span>
+                            <span className="text-primary font-extrabold">+KSh {t.cost}</span>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-0.5">{t.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ── Paid Ad / Boost Payment Section ── */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-primary-dark">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                      <h2 className="text-base font-bold">Listing saved — complete payment</h2>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFee(0);
+                        setPromotionTier("standard");
+                        setStkSent(false);
+                      }}
+                      className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+                    >
+                      Keep free (KSh 0)
+                    </button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Total Ad Fee: <b className="text-primary-dark text-sm">KSh {fee}</b> (includes {promotionTier} boost)
+                  </p>
+
+                  {/* Option 1: Instant M-Pesa STK Push */}
+                  {stkSent ? (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/50 p-4 space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="h-8 w-8 rounded-full bg-emerald-100 grid place-items-center text-emerald-600 flex-shrink-0">
+                          <Smartphone className="h-4 w-4" />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="text-xs font-bold text-emerald-900">M-Pesa PIN Prompt Sent!</div>
+                          <p className="text-xs text-emerald-800 leading-relaxed">
+                            {stkCustomerMessage || `A payment prompt for KSh ${fee} was sent to ${stkPhone}.`} Please check your phone screen and enter your 4-digit M-Pesa PIN to complete payment.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={handlePaymentDone}
+                          className="flex-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-bold transition shadow-sm cursor-pointer"
+                        >
+                          ✓ I Have Completed Payment — Continue
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setStkSent(false)}
+                          className="rounded-lg border border-border bg-white hover:bg-muted/60 text-muted-foreground px-3 py-2 text-xs font-semibold cursor-pointer"
+                        >
+                          Didn't get prompt? Resend
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 space-y-2">
+                      <div className="text-xs font-bold text-primary-dark flex items-center gap-1.5">
+                        <Smartphone className="h-4 w-4 text-primary" /> Instant M-Pesa Prompt (STK Push)
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">Enter your Safaricom number to receive a PIN prompt on your phone.</p>
+                      <div className="flex gap-2">
+                        <input
+                          type="tel"
+                          value={stkPhone}
+                          onChange={(e) => setStkPhone(e.target.value)}
+                          placeholder="e.g. 0712345678"
+                          className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-primary font-semibold"
+                        />
+                        <button
+                          disabled={pushingStk || !stkPhone}
+                          onClick={handleTriggerStk}
+                          className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold transition disabled:opacity-60 cursor-pointer"
+                        >
+                          {pushingStk ? "Sending prompt..." : "Send M-Pesa Prompt"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Option 2: Pay with Wallet */}
+                  <div className="rounded-xl border border-border/80 bg-muted/30 p-3.5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                        <Wallet className="h-4 w-4 text-primary" /> Pay with VutaBiz Wallet
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        Balance: <b className="text-foreground">KSh {myWalletBalance.toLocaleString()}</b> • Instant activation
+                      </div>
+                    </div>
+                    <button
+                      disabled={payingWithWallet || myWalletBalance < (fee || 100)}
+                      onClick={handlePayWithWallet}
+                      className="rounded-lg bg-primary text-white px-3 py-2 text-xs font-bold hover:bg-primary-dark transition disabled:opacity-60 cursor-pointer"
+                    >
+                      {payingWithWallet ? "Processing..." : myWalletBalance < (fee || 100) ? "Insufficient Balance" : "Pay from Wallet"}
+                    </button>
+                  </div>
+
+                  {/* Option 3: Manual Paybill */}
+                  <div className="border-t border-border pt-3 space-y-2">
+                    <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Or Pay Manually via Paybill</div>
+                    <p className="text-xs text-muted-foreground">
+                      Paybill: <b>247247</b>, Account: <b>{createdId.slice(0, 8)}</b>, Amount: <b>KSh {fee}</b>, then enter the M-Pesa code:
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        value={mpesa}
+                        onChange={(e) => setMpesa(e.target.value.toUpperCase())}
+                        placeholder="e.g. QK7XX8Y9ZA"
+                        className="flex-1 rounded-lg border border-input bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary uppercase font-mono"
+                      />
+                      <button
+                        disabled={loading || !mpesa}
+                        onClick={payAd}
+                        className="rounded-lg bg-primary-dark text-white px-4 py-2 text-sm font-bold disabled:opacity-60 cursor-pointer"
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </div>
+
+                  <Link to="/dashboard" className="inline-block text-xs text-primary underline">Skip payment for now (saved as draft)</Link>
+                </div>
+              )}
             </div>
           )}
         </div>
